@@ -1,0 +1,12 @@
+voi_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: victims-of-ink-data-platform
+      dataset: voi_dbt_dev
+      threads: 4
+      timeout_seconds: 300
+      location: australia-southeast2
+      keyfile: /absolute/path/to/service-account.json

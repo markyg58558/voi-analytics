@@ -1,0 +1,20 @@
+select
+  DEPOSIT_ID as deposit_id,
+  cast(APPOINTMENT_ID as int64) as appointment_id,
+  APPOINTMENT_REF as appointment_ref,
+  cast(TEAM_MEMBER_ID as int64) as team_member_id,
+  TEAM_MEMBER as team_member,
+  cast(CLIENT_ID as int64) as client_id,
+  CLIENT as client,
+  cast(LOCATION_ID as int64) as location_id,
+  LOCATION as location,
+  STATUS as status,
+  cast(COLLECTIONS as numeric) as collections,
+  cast(REDEMPTIONS as numeric) as redemptions,
+  cast(REFUNDS as numeric) as refunds,
+  cast(CLOSING_BALANCE as numeric) as closing_balance,
+  CURRENCY_CODE as currency_code,
+  cast(COLLECTION_DATE as timestamp) as collection_ts_utc,
+  date(COLLECTION_DATE, "Australia/Melbourne") as collection_day_melbourne,
+  date_trunc(date(COLLECTION_DATE, "Australia/Melbourne"), week(saturday)) as pay_week_start
+from {{ source('voi_warehouse', 'deposits') }}

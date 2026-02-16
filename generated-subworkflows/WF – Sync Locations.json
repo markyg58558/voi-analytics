@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Locations",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "5548abc8-0f87-4be8-9e7f-ff42553cd543",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "8f83c994-d837-4d8c-b4fa-08b84ffcf582",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "0138add8-1298-4523-bd71-146ad94cce6b",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.locations_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "dd76ec60-bc68-4563-bc43-b4d2aad6e46b",
+      "name": "BQ \u2013 Truncate locations_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.LOCATIONS\nWHERE DELETED_AT >= DATEADD(day, -7, CURRENT_TIMESTAMP());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "d8c8cb97-4e82-48b4-9f37-219d3b6bfe15",
+      "name": "Snowflake \u2013 Fetch Locations (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "locations_stage",
+          "mode": "list",
+          "cachedResultName": "locations_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "88a6dbcf-2336-4f09-a14d-4dd887baba9c",
+      "name": "BQ - Insert locations_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.locations` T\nUSING `victims-of-ink-data-platform.voi_warehouse.locations_stage` S\nON T.LOCATION_ID = S.LOCATION_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    NAME = S.NAME,\n    PHONE = S.PHONE,\n    EMAIL = S.EMAIL,\n    DELETED_AT = S.DELETED_AT,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    LOCATION_ID,\n    NAME,\n    PHONE,\n    EMAIL,\n    DELETED_AT,\n    _loaded_at\n  )\n  VALUES (\n    S.LOCATION_ID,\n    S.NAME,\n    S.PHONE,\n    S.EMAIL,\n    S.DELETED_AT,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "4ac07b27-3a55-4945-9bd3-90ab65e25f84",
+      "name": "BQ \u2013 Merge locations_stage \u2192 locations",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert locations_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate locations_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate locations_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Locations (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Locations (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert locations_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge locations_stage \u2192 locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

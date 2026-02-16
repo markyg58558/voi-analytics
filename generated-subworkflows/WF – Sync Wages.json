@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Wages",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "a0fb26d3-6d22-482b-9d05-4dcd6ab76178",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "f68ada6e-83a5-4290-a8bc-6e74725f0704",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "55e8202d-3126-44dd-83b4-665cfb815b47",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.wages_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "b8284802-4587-4dcc-adb8-3fe8edd13a00",
+      "name": "BQ \u2013 Truncate wages_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.WAGES\nWHERE WAGE_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "47fb14de-7c70-49f6-aa85-6fc198729409",
+      "name": "Snowflake \u2013 Fetch Wages (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "wages_stage",
+          "mode": "list",
+          "cachedResultName": "wages_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "dd65cadc-2507-4855-a155-5641e1631cc2",
+      "name": "BQ - Insert wages_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.wages` T\nUSING `victims-of-ink-data-platform.voi_warehouse.wages_stage` S\nON T.WAGE_PK = S.WAGE_PK\n\nWHEN MATCHED THEN\n  UPDATE SET\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    WAGE_DATE = S.WAGE_DATE,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    PAID_BREAKS = S.PAID_BREAKS,\n    UNPAID_BREAKS = S.UNPAID_BREAKS,\n    REGULAR_PAID_HOURS = S.REGULAR_PAID_HOURS,\n    OVERTIME_PAID_HOURS = S.OVERTIME_PAID_HOURS,\n    REGULAR_WAGE_AMOUNT = S.REGULAR_WAGE_AMOUNT,\n    OVERTIME_WAGE_AMOUNT = S.OVERTIME_WAGE_AMOUNT,\n    HOURS_WORKED = S.HOURS_WORKED,\n    TOTAL_PAID_HOURS = S.TOTAL_PAID_HOURS,\n    TOTAL_WAGES = S.TOTAL_WAGES,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    WAGE_PK,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    WAGE_DATE,\n    LOCATION,\n    TEAM_MEMBER,\n    PAID_BREAKS,\n    UNPAID_BREAKS,\n    REGULAR_PAID_HOURS,\n    OVERTIME_PAID_HOURS,\n    REGULAR_WAGE_AMOUNT,\n    OVERTIME_WAGE_AMOUNT,\n    HOURS_WORKED,\n    TOTAL_PAID_HOURS,\n    TOTAL_WAGES,\n    _loaded_at\n  )\n  VALUES (\n    S.WAGE_PK,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.WAGE_DATE,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.PAID_BREAKS,\n    S.UNPAID_BREAKS,\n    S.REGULAR_PAID_HOURS,\n    S.OVERTIME_PAID_HOURS,\n    S.REGULAR_WAGE_AMOUNT,\n    S.OVERTIME_WAGE_AMOUNT,\n    S.HOURS_WORKED,\n    S.TOTAL_PAID_HOURS,\n    S.TOTAL_WAGES,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "5081ae35-9b3d-4979-8a34-79ec75e0653f",
+      "name": "BQ \u2013 Merge wages_stage \u2192 wages",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert wages_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate wages_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate wages_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Wages (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Wages (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert wages_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge wages_stage \u2192 wages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

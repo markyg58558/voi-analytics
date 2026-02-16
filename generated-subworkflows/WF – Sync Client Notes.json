@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Client Notes",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "9c4eb4c1-3884-4973-bf3b-0acb2752d093",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "6301d4bf-b338-4944-a051-15b812dcbd6f",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "fde768b3-b5e4-4410-baaf-c00ca6e3ac5f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.client_notes_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "52c88940-5e09-4159-9bd9-86fd69c41d0d",
+      "name": "BQ \u2013 Truncate client_notes_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.CLIENT_NOTES\nWHERE LAST_EDITED_AT >= DATEADD(day, -7, CURRENT_TIMESTAMP());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "578d1844-039d-4959-8284-62fa69638b33",
+      "name": "Snowflake \u2013 Fetch Client Notes (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "client_notes_stage",
+          "mode": "list",
+          "cachedResultName": "client_notes_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "e7fc1c2c-e570-42ed-9bbe-a7c5647f2508",
+      "name": "BQ - Insert client_notes_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.client_notes` T\nUSING `victims-of-ink-data-platform.voi_warehouse.client_notes_stage` S\nON T.NOTE_ID = S.NOTE_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    CLIENT_ID = S.CLIENT_ID,\n    CREATED_BY_TEAM_MEMBER_ID = S.CREATED_BY_TEAM_MEMBER_ID,\n    LAST_EDITED_BY_TEAM_MEMBER_ID = S.LAST_EDITED_BY_TEAM_MEMBER_ID,\n    BODY = S.BODY,\n    CREATED_AT = S.CREATED_AT,\n    LAST_EDITED_AT = S.LAST_EDITED_AT,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    NOTE_ID,\n    CLIENT_ID,\n    CREATED_BY_TEAM_MEMBER_ID,\n    LAST_EDITED_BY_TEAM_MEMBER_ID,\n    BODY,\n    CREATED_AT,\n    LAST_EDITED_AT,\n    _loaded_at\n  )\n  VALUES (\n    S.NOTE_ID,\n    S.CLIENT_ID,\n    S.CREATED_BY_TEAM_MEMBER_ID,\n    S.LAST_EDITED_BY_TEAM_MEMBER_ID,\n    S.BODY,\n    S.CREATED_AT,\n    S.LAST_EDITED_AT,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "aafd7786-46a9-4482-9dd1-28c45c47167a",
+      "name": "BQ \u2013 Merge client_notes_stage \u2192 client notes",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert client_notes_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate client_notes_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate client_notes_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Client Notes (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Client Notes (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert client_notes_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge client_notes_stage \u2192 client notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

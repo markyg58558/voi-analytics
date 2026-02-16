@@ -1,0 +1,223 @@
+{
+  "name": "WF – Sync Clients",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "bd14c6c7-e979-4156-9e38-7795d5c903a4",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "f480f4ff-50b9-4a8e-9870-e02cd5462e03",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.clients_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "7c75f90c-9a5b-4c55-9d6a-4ea108a6f141",
+      "name": "BQ – Truncate clients_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.CLIENTS\nWHERE\n  SIGNUP_DATE >= DATEADD(day, -7, CURRENT_DATE())\n  OR LAST_APPOINTMENT_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "6d59dde6-6916-4a6b-853e-534ca7ae949e",
+      "name": "Snowflake – Fetch Clients (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "clients_stage",
+          "mode": "list",
+          "cachedResultName": "clients_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "9a85b61e-83fc-4f3c-8730-52bd9cbeab7c",
+      "name": "BQ - Insert clients_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.clients` T\nUSING `victims-of-ink-data-platform.voi_warehouse.clients_stage` S\nON T.CLIENT_ID = S.CLIENT_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SIGNUP_DATE = S.SIGNUP_DATE,\n    FIRST_APPOINTMENT_DATE = S.FIRST_APPOINTMENT_DATE,\n    LAST_APPOINTMENT_DATE = S.LAST_APPOINTMENT_DATE,\n    CLIENT = S.CLIENT,\n    GENDER = S.GENDER,\n    AGE = S.AGE,\n    MOBILE_NUMBER = S.MOBILE_NUMBER,\n    EMAIL = S.EMAIL,\n    IS_REBOOKED = S.IS_REBOOKED,\n    REFERRAL_SOURCE = S.REFERRAL_SOURCE,\n    LAST_APPOINTMENT_LOCATION = S.LAST_APPOINTMENT_LOCATION,\n    LAST_APPOINTMENT_WITH = S.LAST_APPOINTMENT_WITH,\n    SMS_NOTIFICATIONS_ENABLED = S.SMS_NOTIFICATIONS_ENABLED,\n    WHATSAPP_NOTIFICATIONS_ENABLED = S.WHATSAPP_NOTIFICATIONS_ENABLED,\n    EMAIL_NOTIFICATIONS_ENABLED = S.EMAIL_NOTIFICATIONS_ENABLED,\n    ACCEPTS_SMS_MARKETING_NOTIFICATIONS = S.ACCEPTS_SMS_MARKETING_NOTIFICATIONS,\n    ACCEPTS_WHATSAPP_MARKETING_NOTIFICATIONS = S.ACCEPTS_WHATSAPP_MARKETING_NOTIFICATIONS,\n    ACCEPTS_EMAIL_MARKETING_NOTIFICATIONS = S.ACCEPTS_EMAIL_MARKETING_NOTIFICATIONS,\n    TOTAL_APPOINTMENTS = S.TOTAL_APPOINTMENTS,\n    TOTAL_APPOINTMENT_VALUE = S.TOTAL_APPOINTMENT_VALUE,\n    REVIEWS = S.REVIEWS,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    CLIENT_ID,\n    SIGNUP_DATE,\n    FIRST_APPOINTMENT_DATE,\n    LAST_APPOINTMENT_DATE,\n    CLIENT,\n    GENDER,\n    AGE,\n    MOBILE_NUMBER,\n    EMAIL,\n    IS_REBOOKED,\n    REFERRAL_SOURCE,\n    LAST_APPOINTMENT_LOCATION,\n    LAST_APPOINTMENT_WITH,\n    SMS_NOTIFICATIONS_ENABLED,\n    WHATSAPP_NOTIFICATIONS_ENABLED,\n    EMAIL_NOTIFICATIONS_ENABLED,\n    ACCEPTS_SMS_MARKETING_NOTIFICATIONS,\n    ACCEPTS_WHATSAPP_MARKETING_NOTIFICATIONS,\n    ACCEPTS_EMAIL_MARKETING_NOTIFICATIONS,\n    TOTAL_APPOINTMENTS,\n    TOTAL_APPOINTMENT_VALUE,\n    REVIEWS,\n    _loaded_at\n  )\n  VALUES (\n    S.CLIENT_ID,\n    S.SIGNUP_DATE,\n    S.FIRST_APPOINTMENT_DATE,\n    S.LAST_APPOINTMENT_DATE,\n    S.CLIENT,\n    S.GENDER,\n    S.AGE,\n    S.MOBILE_NUMBER,\n    S.EMAIL,\n    S.IS_REBOOKED,\n    S.REFERRAL_SOURCE,\n    S.LAST_APPOINTMENT_LOCATION,\n    S.LAST_APPOINTMENT_WITH,\n    S.SMS_NOTIFICATIONS_ENABLED,\n    S.WHATSAPP_NOTIFICATIONS_ENABLED,\n    S.EMAIL_NOTIFICATIONS_ENABLED,\n    S.ACCEPTS_SMS_MARKETING_NOTIFICATIONS,\n    S.ACCEPTS_WHATSAPP_MARKETING_NOTIFICATIONS,\n    S.ACCEPTS_EMAIL_MARKETING_NOTIFICATIONS,\n    S.TOTAL_APPOINTMENTS,\n    S.TOTAL_APPOINTMENT_VALUE,\n    S.REVIEWS,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "41314fcb-2466-4abc-aea8-f14c94c6ef33",
+      "name": "BQ – Merge clients_stage → clients",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert clients_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ – Truncate clients_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ – Truncate clients_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake – Fetch Clients (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake – Fetch Clients (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert clients_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ – Merge clients_stage → clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d6abb999-e371-4f94-953b-c6953387d9a8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "id": "jjBoy739RO3gX2iW",
+  "tags": []
+}

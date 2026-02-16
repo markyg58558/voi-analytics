@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Memberships",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "f8bdefdc-fa07-4b44-a1ad-1a9c0acf4cff",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "dd490377-2ebf-4066-b92f-8d83c784b5b9",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "cc006151-c8a0-43f3-a9de-2b6111ca47bb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.memberships_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "6a8938ab-af17-43d9-9d15-b95061178c8f",
+      "name": "BQ \u2013 Truncate memberships_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.MEMBERSHIPS\nWHERE START_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "a11e80f0-3fe7-41be-abdd-224ba9669209",
+      "name": "Snowflake \u2013 Fetch Memberships (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "memberships_stage",
+          "mode": "list",
+          "cachedResultName": "memberships_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "e753e602-fa6d-4bac-a831-8ddeab91ade7",
+      "name": "BQ - Insert memberships_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.memberships` T\nUSING `victims-of-ink-data-platform.voi_warehouse.memberships_stage` S\nON T.MEMBERSHIP_PK = S.MEMBERSHIP_PK\n\nWHEN MATCHED THEN\n  UPDATE SET\n    MEMBERSHIP_ID = S.MEMBERSHIP_ID,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    START_DATE = S.START_DATE,\n    END_DATE = S.END_DATE,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    CLIENT = S.CLIENT,\n    MEMBERSHIP_TYPE = S.MEMBERSHIP_TYPE,\n    MEMBERSHIP_NAME = S.MEMBERSHIP_NAME,\n    MEMBERSHIP_STATUS = S.MEMBERSHIP_STATUS,\n    SERVICES_INCLUDED = S.SERVICES_INCLUDED,\n    TOTAL_SESSIONS = S.TOTAL_SESSIONS,\n    SALE_VALUE = S.SALE_VALUE,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    MEMBERSHIP_PK,\n    MEMBERSHIP_ID,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    CLIENT_ID,\n    START_DATE,\n    END_DATE,\n    LOCATION,\n    TEAM_MEMBER,\n    CLIENT,\n    MEMBERSHIP_TYPE,\n    MEMBERSHIP_NAME,\n    MEMBERSHIP_STATUS,\n    SERVICES_INCLUDED,\n    TOTAL_SESSIONS,\n    SALE_VALUE,\n    _loaded_at\n  )\n  VALUES (\n    S.MEMBERSHIP_PK,\n    S.MEMBERSHIP_ID,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.START_DATE,\n    S.END_DATE,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.CLIENT,\n    S.MEMBERSHIP_TYPE,\n    S.MEMBERSHIP_NAME,\n    S.MEMBERSHIP_STATUS,\n    S.SERVICES_INCLUDED,\n    S.TOTAL_SESSIONS,\n    S.SALE_VALUE,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "703578a1-5f1f-472b-939f-5efcada77114",
+      "name": "BQ \u2013 Merge memberships_stage \u2192 memberships",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert memberships_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate memberships_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate memberships_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Memberships (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Memberships (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert memberships_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge memberships_stage \u2192 memberships",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

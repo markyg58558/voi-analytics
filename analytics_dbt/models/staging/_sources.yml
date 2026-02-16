@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: voi_warehouse
+    database: victims-of-ink-data-platform
+    schema: voi_warehouse
+    tables:
+      - name: commissions
+      - name: deposits
+      - name: team_members
+
+  - name: voi_reporting
+    database: victims-of-ink-data-platform
+    schema: voi_reporting
+    tables:
+      - name: artist_payout_config

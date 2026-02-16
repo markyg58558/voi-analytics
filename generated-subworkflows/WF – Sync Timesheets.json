@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Timesheets",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "76721cee-6c78-4505-8af9-c2536c6d59f5",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "dc17f5fd-735b-4369-8cf8-6e570df470c5",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "32245d5b-04dd-4cd0-8bb1-c12322658768",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.timesheets_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "590a2608-4a15-4cc1-8ea2-5a6864f52f1f",
+      "name": "BQ \u2013 Truncate timesheets_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.TIMESHEETS;\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "c1d1ef37-e46b-41c4-bfbc-2652b1e0e0fb",
+      "name": "Snowflake \u2013 Fetch Timesheets (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "timesheets_stage",
+          "mode": "list",
+          "cachedResultName": "timesheets_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "4a7f7713-048f-4add-8294-dbe95b3d829c",
+      "name": "BQ - Insert timesheets_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.timesheets` T\nUSING `victims-of-ink-data-platform.voi_warehouse.timesheets_stage` S\nON T.TIMESHEET_ID = S.TIMESHEET_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    EXPECTED_START = S.EXPECTED_START,\n    ACTUAL_START = S.ACTUAL_START,\n    EXPECTED_END = S.EXPECTED_END,\n    ACTUAL_END = S.ACTUAL_END,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    SOURCE = S.SOURCE,\n    CLOCK_IN = S.CLOCK_IN,\n    CLOCK_IN_TYPE = S.CLOCK_IN_TYPE,\n    CLOCK_IN_DEVIATION = S.CLOCK_IN_DEVIATION,\n    CLOCK_OUT = S.CLOCK_OUT,\n    CLOCK_OUT_TYPE = S.CLOCK_OUT_TYPE,\n    CLOCK_OUT_DEVIATION = S.CLOCK_OUT_DEVIATION,\n    PAID_BREAK_HOURS = S.PAID_BREAK_HOURS,\n    PAID_BREAK_MINUTES = S.PAID_BREAK_MINUTES,\n    UNPAID_BREAK_HOURS = S.UNPAID_BREAK_HOURS,\n    UNPAID_BREAK_MINUTES = S.UNPAID_BREAK_MINUTES,\n    HOURS_WORKED = S.HOURS_WORKED,\n    HOURS_SCHEDULED = S.HOURS_SCHEDULED,\n    HOURS_TOTAL_PAID = S.HOURS_TOTAL_PAID,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    TIMESHEET_ID,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    EXPECTED_START,\n    ACTUAL_START,\n    EXPECTED_END,\n    ACTUAL_END,\n    LOCATION,\n    TEAM_MEMBER,\n    SOURCE,\n    CLOCK_IN,\n    CLOCK_IN_TYPE,\n    CLOCK_IN_DEVIATION,\n    CLOCK_OUT,\n    CLOCK_OUT_TYPE,\n    CLOCK_OUT_DEVIATION,\n    PAID_BREAK_HOURS,\n    PAID_BREAK_MINUTES,\n    UNPAID_BREAK_HOURS,\n    UNPAID_BREAK_MINUTES,\n    HOURS_WORKED,\n    HOURS_SCHEDULED,\n    HOURS_TOTAL_PAID,\n    _loaded_at\n  )\n  VALUES (\n    S.TIMESHEET_ID,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.EXPECTED_START,\n    S.ACTUAL_START,\n    S.EXPECTED_END,\n    S.ACTUAL_END,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.SOURCE,\n    S.CLOCK_IN,\n    S.CLOCK_IN_TYPE,\n    S.CLOCK_IN_DEVIATION,\n    S.CLOCK_OUT,\n    S.CLOCK_OUT_TYPE,\n    S.CLOCK_OUT_DEVIATION,\n    S.PAID_BREAK_HOURS,\n    S.PAID_BREAK_MINUTES,\n    S.UNPAID_BREAK_HOURS,\n    S.UNPAID_BREAK_MINUTES,\n    S.HOURS_WORKED,\n    S.HOURS_SCHEDULED,\n    S.HOURS_TOTAL_PAID,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "144ff7a4-4218-4e7f-9fc7-6221468e3e64",
+      "name": "BQ \u2013 Merge timesheets_stage \u2192 timesheets",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert timesheets_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate timesheets_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate timesheets_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Timesheets (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Timesheets (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert timesheets_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge timesheets_stage \u2192 timesheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

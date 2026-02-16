@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Team Members",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "0ffe5584-caf5-4f5b-804d-7b05266c57a2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "ab3d7415-1a5e-46df-b568-d28d0112f3ce",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "b8c047b7-c1b6-451a-a960-35ac2e239509",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.team_members_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "57af2d96-e243-4f05-8720-46195238ea70",
+      "name": "BQ \u2013 Truncate team_members_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.TEAM_MEMBERS\nWHERE EMPLOYMENT_START_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "ab5e9225-036b-4d0c-92c7-b684c84cffe1",
+      "name": "Snowflake \u2013 Fetch Team Members (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "team_members_stage",
+          "mode": "list",
+          "cachedResultName": "team_members_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "9dddaf93-90b1-4deb-8555-581c2e9ab7c5",
+      "name": "BQ - Insert team_members_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.team_members` T\nUSING `victims-of-ink-data-platform.voi_warehouse.team_members_stage` S\nON T.TEAM_MEMBER_ID = S.TEAM_MEMBER_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    FIRST_NAME = S.FIRST_NAME,\n    LAST_NAME = S.LAST_NAME,\n    FULL_NAME = S.FULL_NAME,\n    MOBILE_NUMBER = S.MOBILE_NUMBER,\n    EMAIL = S.EMAIL,\n    ROLE = S.ROLE,\n    STAFF_TITLE = S.STAFF_TITLE,\n    EXTERNAL_ID = S.EXTERNAL_ID,\n    EMPLOYMENT_START_DATE = S.EMPLOYMENT_START_DATE,\n    EMPLOYMENT_END_DATE = S.EMPLOYMENT_END_DATE,\n    DELETED_AT = S.DELETED_AT,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    TEAM_MEMBER_ID,\n    FIRST_NAME,\n    LAST_NAME,\n    FULL_NAME,\n    MOBILE_NUMBER,\n    EMAIL,\n    ROLE,\n    STAFF_TITLE,\n    EXTERNAL_ID,\n    EMPLOYMENT_START_DATE,\n    EMPLOYMENT_END_DATE,\n    DELETED_AT,\n    _loaded_at\n  )\n  VALUES (\n    S.TEAM_MEMBER_ID,\n    S.FIRST_NAME,\n    S.LAST_NAME,\n    S.FULL_NAME,\n    S.MOBILE_NUMBER,\n    S.EMAIL,\n    S.ROLE,\n    S.STAFF_TITLE,\n    S.EXTERNAL_ID,\n    S.EMPLOYMENT_START_DATE,\n    S.EMPLOYMENT_END_DATE,\n    S.DELETED_AT,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "1b20c084-b642-4b0a-9331-8814b2c08de9",
+      "name": "BQ \u2013 Merge team_members_stage \u2192 team members",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert team_members_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate team_members_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate team_members_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Team Members (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Team Members (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert team_members_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge team_members_stage \u2192 team members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

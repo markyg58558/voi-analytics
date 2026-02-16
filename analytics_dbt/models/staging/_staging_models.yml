@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_voi__commissions
+    columns:
+      - name: commission_id
+        tests: [not_null, unique]
+      - name: sale_id
+        tests: [not_null]
+      - name: team_member_id
+        tests: [not_null]
+      - name: commission
+        tests: [not_null]
+
+  - name: stg_voi__deposits
+    columns:
+      - name: deposit_id
+        tests: [not_null]
+      - name: pay_week_start
+        tests: [not_null]
+
+  - name: stg_voi__team_members
+    columns:
+      - name: team_member_id
+        tests: [not_null]
+      - name: full_name
+        tests: [not_null]

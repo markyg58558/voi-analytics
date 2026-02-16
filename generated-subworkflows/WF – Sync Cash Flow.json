@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Cash Flow",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "663f3ffa-3137-4dbe-9045-3421c5aab0b8",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "b077ee5f-80b5-49aa-ae03-09fa9edbe3e8",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "47ceb3f7-2345-492e-a5a3-6b0ab3aa29c7",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.cash_flow_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "6b964b6b-cc57-4ccf-94a6-b65966136853",
+      "name": "BQ \u2013 Truncate cash_flow_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.CASH_FLOW\nWHERE PAYMENT_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "253c6753-748b-485f-ab4e-3069ccacf820",
+      "name": "Snowflake \u2013 Fetch Cash Flow (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "cash_flow_stage",
+          "mode": "list",
+          "cachedResultName": "cash_flow_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "f2105d22-8fcc-4096-924a-c2c6cdbfde7d",
+      "name": "BQ - Insert cash_flow_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.cash_flow` T\nUSING `victims-of-ink-data-platform.voi_warehouse.cash_flow_stage` S\nON T.TRANSACTION_REF = S.TRANSACTION_REF\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SALE_ID = S.SALE_ID,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    PROCESSED_BY_TEAM_MEMBER_ID = S.PROCESSED_BY_TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    PAYMENT_DATE = S.PAYMENT_DATE,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    CLIENT = S.CLIENT,\n    PROCESSED_BY_TEAM_MEMBER = S.PROCESSED_BY_TEAM_MEMBER,\n    PAYER_DETAILS = S.PAYER_DETAILS,\n    RECIPIENT_DETAILS = S.RECIPIENT_DETAILS,\n    TRANSACTION_TYPE = S.TRANSACTION_TYPE,\n    APPOINTMENT_REF = S.APPOINTMENT_REF,\n    OPENING_BALANCE = S.OPENING_BALANCE,\n    AMOUNT = S.AMOUNT,\n    CLOSING_BALANCE = S.CLOSING_BALANCE,\n    CURRENCY = S.CURRENCY,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    TRANSACTION_REF,\n    SALE_ID,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    PROCESSED_BY_TEAM_MEMBER_ID,\n    CLIENT_ID,\n    PAYMENT_DATE,\n    LOCATION,\n    TEAM_MEMBER,\n    CLIENT,\n    PROCESSED_BY_TEAM_MEMBER,\n    PAYER_DETAILS,\n    RECIPIENT_DETAILS,\n    TRANSACTION_TYPE,\n    APPOINTMENT_REF,\n    OPENING_BALANCE,\n    AMOUNT,\n    CLOSING_BALANCE,\n    CURRENCY,\n    _loaded_at\n  )\n  VALUES (\n    S.TRANSACTION_REF,\n    S.SALE_ID,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.PROCESSED_BY_TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.PAYMENT_DATE,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.CLIENT,\n    S.PROCESSED_BY_TEAM_MEMBER,\n    S.PAYER_DETAILS,\n    S.RECIPIENT_DETAILS,\n    S.TRANSACTION_TYPE,\n    S.APPOINTMENT_REF,\n    S.OPENING_BALANCE,\n    S.AMOUNT,\n    S.CLOSING_BALANCE,\n    S.CURRENCY,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "d92de295-797e-4751-b675-0e3264450b94",
+      "name": "BQ \u2013 Merge cash_flow_stage \u2192 cash flow",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert cash_flow_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate cash_flow_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate cash_flow_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Cash Flow (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Cash Flow (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert cash_flow_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge cash_flow_stage \u2192 cash flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

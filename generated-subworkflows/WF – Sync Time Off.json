@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Time Off",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "ab1b935e-274c-48af-b6f7-a3ab7bbcf3a6",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "339e7dd5-b6e9-4c98-851e-2ff374ae71f1",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "5246e3aa-21bc-459f-be2c-46a8b6258c6a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.time_off_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "5d043f73-bece-4275-8b7d-4ba770178a9e",
+      "name": "BQ \u2013 Truncate time_off_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.TIME_OFF\nWHERE START_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "fd0e7e50-23e3-47cf-9209-cc504e2b9fc0",
+      "name": "Snowflake \u2013 Fetch Time Off (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "time_off_stage",
+          "mode": "list",
+          "cachedResultName": "time_off_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "846c33a4-af49-4ccb-a70d-3ef33d64613e",
+      "name": "BQ - Insert time_off_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.time_off` T\nUSING `victims-of-ink-data-platform.voi_warehouse.time_off_stage` S\nON T.TIME_OFF_PK = S.TIME_OFF_PK\n\nWHEN MATCHED THEN\n  UPDATE SET\n    TIME_OFF_ID = S.TIME_OFF_ID,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    START_DATE = S.START_DATE,\n    START_TIME = S.START_TIME,\n    END_DATE = S.END_DATE,\n    END_TIME = S.END_TIME,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    TIME_OFF_TYPE = S.TIME_OFF_TYPE,\n    STATUS = S.STATUS,\n    DURATION_MINUTES = S.DURATION_MINUTES,\n    DURATION_HOURS = S.DURATION_HOURS,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    TIME_OFF_PK,\n    TIME_OFF_ID,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    START_DATE,\n    START_TIME,\n    END_DATE,\n    END_TIME,\n    LOCATION,\n    TEAM_MEMBER,\n    TIME_OFF_TYPE,\n    STATUS,\n    DURATION_MINUTES,\n    DURATION_HOURS,\n    _loaded_at\n  )\n  VALUES (\n    S.TIME_OFF_PK,\n    S.TIME_OFF_ID,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.START_DATE,\n    S.START_TIME,\n    S.END_DATE,\n    S.END_TIME,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.TIME_OFF_TYPE,\n    S.STATUS,\n    S.DURATION_MINUTES,\n    S.DURATION_HOURS,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "1a31a6c2-0b69-4600-bf5c-9372d1ac58c7",
+      "name": "BQ \u2013 Merge time_off_stage \u2192 time off",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert time_off_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate time_off_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate time_off_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Time Off (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Time Off (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert time_off_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge time_off_stage \u2192 time off",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Tips",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "8df5b91a-360d-4e1f-9f5e-5a42342ca470",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "af8beba4-b1b8-48ac-978d-5f90d7ee3022",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "f2174e14-7fba-4dd8-ad2a-f0b147beb0fd",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.tips_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "f851bc2e-85dc-4b9d-b7c2-2f6f7a3824f7",
+      "name": "BQ \u2013 Truncate tips_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.TIPS\nWHERE TIP_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "9f8dc8e7-e929-4343-a39b-7da3817ac0cb",
+      "name": "Snowflake \u2013 Fetch Tips (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "tips_stage",
+          "mode": "list",
+          "cachedResultName": "tips_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "87df5828-7d13-48d9-9fe0-4b1424fd822f",
+      "name": "BQ - Insert tips_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.tips` T\nUSING `victims-of-ink-data-platform.voi_warehouse.tips_stage` S\nON T.TIP_ID = S.TIP_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SALE_ID = S.SALE_ID,\n    SALE_NUMBER = S.SALE_NUMBER,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    TIP_DATE = S.TIP_DATE,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    CLIENT = S.CLIENT,\n    CLIENT_GENDER = S.CLIENT_GENDER,\n    LOCATION = S.LOCATION,\n    TRANSACTION_TYPE = S.TRANSACTION_TYPE,\n    TIP_CHANNEL = S.TIP_CHANNEL,\n    PAYMENT_METHOD = S.PAYMENT_METHOD,\n    TIPS_COLLECTED = S.TIPS_COLLECTED,\n    TIPS_REFUNDED = S.TIPS_REFUNDED,\n    CLIENT_RETENTION_SOURCE = S.CLIENT_RETENTION_SOURCE,\n    CURRENCY_CODE = S.CURRENCY_CODE,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    TIP_ID,\n    SALE_ID,\n    SALE_NUMBER,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    CLIENT_ID,\n    TIP_DATE,\n    TEAM_MEMBER,\n    CLIENT,\n    CLIENT_GENDER,\n    LOCATION,\n    TRANSACTION_TYPE,\n    TIP_CHANNEL,\n    PAYMENT_METHOD,\n    TIPS_COLLECTED,\n    TIPS_REFUNDED,\n    CLIENT_RETENTION_SOURCE,\n    CURRENCY_CODE,\n    _loaded_at\n  )\n  VALUES (\n    S.TIP_ID,\n    S.SALE_ID,\n    S.SALE_NUMBER,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.TIP_DATE,\n    S.TEAM_MEMBER,\n    S.CLIENT,\n    S.CLIENT_GENDER,\n    S.LOCATION,\n    S.TRANSACTION_TYPE,\n    S.TIP_CHANNEL,\n    S.PAYMENT_METHOD,\n    S.TIPS_COLLECTED,\n    S.TIPS_REFUNDED,\n    S.CLIENT_RETENTION_SOURCE,\n    S.CURRENCY_CODE,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "8c426ebb-c1c0-46eb-becf-8d3212b8a7cb",
+      "name": "BQ \u2013 Merge tips_stage \u2192 tips",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert tips_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate tips_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate tips_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Tips (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Tips (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert tips_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge tips_stage \u2192 tips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

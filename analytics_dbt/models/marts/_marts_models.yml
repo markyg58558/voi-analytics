@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: dim_artists
+    columns:
+      - name: team_member_id
+        tests: [not_null, unique]
+
+  - name: mart_payroll_weekly_artist
+    columns:
+      - name: pay_week_start
+        tests: [not_null]
+      - name: team_member_id
+        tests: [not_null]

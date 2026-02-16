@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Stock Orders",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "cbca86b4-4ce1-4b4a-8a67-cfa347a797ef",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "57d553f2-9441-4181-88f9-027be28f37f2",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "9a263061-e838-4be9-bd9b-030b7adfa3a3",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.stock_orders_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "9e9add1b-a51c-4b1e-bdf9-6d94fa3a293d",
+      "name": "BQ \u2013 Truncate stock_orders_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.STOCK_ORDERS\nWHERE ORDERED_AT >= DATEADD(day, -7, CURRENT_TIMESTAMP());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "f37e4839-d03e-49c8-9931-d0dc17896b5e",
+      "name": "Snowflake \u2013 Fetch Stock Orders (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "stock_orders_stage",
+          "mode": "list",
+          "cachedResultName": "stock_orders_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "08708bc1-5335-4b0c-97e8-e222549a77c8",
+      "name": "BQ - Insert stock_orders_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.stock_orders` T\nUSING `victims-of-ink-data-platform.voi_warehouse.stock_orders_stage` S\nON T.ORDER_ITEM_ID = S.ORDER_ITEM_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    ORDER_ID = S.ORDER_ID,\n    LOCATION_ID = S.LOCATION_ID,\n    ORDERED_BY_TEAM_MEMBER_ID = S.ORDERED_BY_TEAM_MEMBER_ID,\n    PRODUCT_ID = S.PRODUCT_ID,\n    ORDERED_AT = S.ORDERED_AT,\n    EXPECTED_AT = S.EXPECTED_AT,\n    RECEIVED_AT = S.RECEIVED_AT,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    SUPPLIER_NAME = S.SUPPLIER_NAME,\n    BRAND_NAME = S.BRAND_NAME,\n    PRODUCT_NAME = S.PRODUCT_NAME,\n    CATEGORY_NAME = S.CATEGORY_NAME,\n    REFERENCE_NUMBER = S.REFERENCE_NUMBER,\n    ORDER_STATUS = S.ORDER_STATUS,\n    ORDERED_QUANTITY = S.ORDERED_QUANTITY,\n    RECEIVED_QUANTITY = S.RECEIVED_QUANTITY,\n    CANCELLED_QUANTITY = S.CANCELLED_QUANTITY,\n    PENDING_QUANTITY = S.PENDING_QUANTITY,\n    AVERAGE_UNIT_COST = S.AVERAGE_UNIT_COST,\n    TOTAL_COST = S.TOTAL_COST,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    ORDER_ITEM_ID,\n    ORDER_ID,\n    LOCATION_ID,\n    ORDERED_BY_TEAM_MEMBER_ID,\n    PRODUCT_ID,\n    ORDERED_AT,\n    EXPECTED_AT,\n    RECEIVED_AT,\n    LOCATION,\n    TEAM_MEMBER,\n    SUPPLIER_NAME,\n    BRAND_NAME,\n    PRODUCT_NAME,\n    CATEGORY_NAME,\n    REFERENCE_NUMBER,\n    ORDER_STATUS,\n    ORDERED_QUANTITY,\n    RECEIVED_QUANTITY,\n    CANCELLED_QUANTITY,\n    PENDING_QUANTITY,\n    AVERAGE_UNIT_COST,\n    TOTAL_COST,\n    _loaded_at\n  )\n  VALUES (\n    S.ORDER_ITEM_ID,\n    S.ORDER_ID,\n    S.LOCATION_ID,\n    S.ORDERED_BY_TEAM_MEMBER_ID,\n    S.PRODUCT_ID,\n    S.ORDERED_AT,\n    S.EXPECTED_AT,\n    S.RECEIVED_AT,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.SUPPLIER_NAME,\n    S.BRAND_NAME,\n    S.PRODUCT_NAME,\n    S.CATEGORY_NAME,\n    S.REFERENCE_NUMBER,\n    S.ORDER_STATUS,\n    S.ORDERED_QUANTITY,\n    S.RECEIVED_QUANTITY,\n    S.CANCELLED_QUANTITY,\n    S.PENDING_QUANTITY,\n    S.AVERAGE_UNIT_COST,\n    S.TOTAL_COST,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "130ae369-6528-4c04-9371-dbebbb333292",
+      "name": "BQ \u2013 Merge stock_orders_stage \u2192 stock orders",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert stock_orders_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate stock_orders_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate stock_orders_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Stock Orders (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Stock Orders (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert stock_orders_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge stock_orders_stage \u2192 stock orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

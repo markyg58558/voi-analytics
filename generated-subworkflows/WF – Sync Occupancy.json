@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Occupancy",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "6ce510b0-d786-4500-a6fc-9618d64ca934",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "d21b2836-c27a-4134-bc6c-6b40febced94",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "6c57d219-ddcd-4efd-b993-77a1215f6dc8",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.occupancy_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "6d9279fc-474e-4142-be5b-e6b89b63d2de",
+      "name": "BQ \u2013 Truncate occupancy_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.OCCUPANCY\nWHERE DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "e40b4e2c-ff3a-4eec-a08b-c9a59e5b980d",
+      "name": "Snowflake \u2013 Fetch Occupancy (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "occupancy_stage",
+          "mode": "list",
+          "cachedResultName": "occupancy_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "cbc0054c-9b8c-4e9e-8f5f-01a54a8bc0d1",
+      "name": "BQ - Insert occupancy_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.occupancy` T\nUSING `victims-of-ink-data-platform.voi_warehouse.occupancy_stage` S\nON T.OCCUPANCY_EMPLOYEE_PK = S.OCCUPANCY_EMPLOYEE_PK\n\nWHEN MATCHED THEN\n  UPDATE SET\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    DATE = S.DATE,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    SHIFT_MINUTES = S.SHIFT_MINUTES,\n    TIME_OFF_MINUTES = S.TIME_OFF_MINUTES,\n    BLOCKED_MINUTES = S.BLOCKED_MINUTES,\n    AVAILABLE_MINUTES = S.AVAILABLE_MINUTES,\n    BOOKED_MINUTES = S.BOOKED_MINUTES,\n    UNBOOKED_MINUTES = S.UNBOOKED_MINUTES,\n    OCCUPANCY_RATE = S.OCCUPANCY_RATE,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    OCCUPANCY_EMPLOYEE_PK,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    DATE,\n    LOCATION,\n    TEAM_MEMBER,\n    SHIFT_MINUTES,\n    TIME_OFF_MINUTES,\n    BLOCKED_MINUTES,\n    AVAILABLE_MINUTES,\n    BOOKED_MINUTES,\n    UNBOOKED_MINUTES,\n    OCCUPANCY_RATE,\n    _loaded_at\n  )\n  VALUES (\n    S.OCCUPANCY_EMPLOYEE_PK,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.DATE,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.SHIFT_MINUTES,\n    S.TIME_OFF_MINUTES,\n    S.BLOCKED_MINUTES,\n    S.AVAILABLE_MINUTES,\n    S.BOOKED_MINUTES,\n    S.UNBOOKED_MINUTES,\n    S.OCCUPANCY_RATE,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "3b9d3dc2-1073-4c48-83c5-91604e9888a3",
+      "name": "BQ \u2013 Merge occupancy_stage \u2192 occupancy",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert occupancy_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate occupancy_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate occupancy_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Occupancy (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Occupancy (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert occupancy_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge occupancy_stage \u2192 occupancy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

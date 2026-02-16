@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Commissions",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "5a28dae2-95ce-45e3-b67c-873098a1c3d7",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "2d6893b7-18dd-42ac-bcd9-5e1e71eeca91",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "b7c1bbde-ae90-492e-a9b7-ad4786b24e5d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.commissions_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "58bca7b7-1e84-4a7c-bae3-3f85820ed05c",
+      "name": "BQ \u2013 Truncate commissions_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.COMMISSIONS\nWHERE SALE_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "aba3604a-f943-4450-9c0f-c70468972496",
+      "name": "Snowflake \u2013 Fetch Commissions (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "commissions_stage",
+          "mode": "list",
+          "cachedResultName": "commissions_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "11023073-e7bf-4aba-900b-1f80420e768d",
+      "name": "BQ - Insert commissions_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.commissions` T\nUSING `victims-of-ink-data-platform.voi_warehouse.commissions_stage` S\nON T.COMMISSION_ID = S.COMMISSION_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SALE_ID = S.SALE_ID,\n    SALE_ITEM_ID = S.SALE_ITEM_ID,\n    SALE_NUMBER = S.SALE_NUMBER,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    SALE_DATE = S.SALE_DATE,\n    CLIENT = S.CLIENT,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    LOCATION = S.LOCATION,\n    SALE_ITEM = S.SALE_ITEM,\n    SALE_TYPE = S.SALE_TYPE,\n    SERVICE_CATEGORY = S.SERVICE_CATEGORY,\n    SKU = S.SKU,\n    GROSS_SALES = S.GROSS_SALES,\n    TAX = S.TAX,\n    DISCOUNTS = S.DISCOUNTS,\n    COST = S.COST,\n    COMMISSION_BASE = S.COMMISSION_BASE,\n    COMMISSION = S.COMMISSION,\n    PERCENTAGE_COMMISSION = S.PERCENTAGE_COMMISSION,\n    CURRENCY_CODE = S.CURRENCY_CODE,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    COMMISSION_ID,\n    SALE_ID,\n    SALE_ITEM_ID,\n    SALE_NUMBER,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    CLIENT_ID,\n    SALE_DATE,\n    CLIENT,\n    TEAM_MEMBER,\n    LOCATION,\n    SALE_ITEM,\n    SALE_TYPE,\n    SERVICE_CATEGORY,\n    SKU,\n    GROSS_SALES,\n    TAX,\n    DISCOUNTS,\n    COST,\n    COMMISSION_BASE,\n    COMMISSION,\n    PERCENTAGE_COMMISSION,\n    CURRENCY_CODE,\n    _loaded_at\n  )\n  VALUES (\n    S.COMMISSION_ID,\n    S.SALE_ID,\n    S.SALE_ITEM_ID,\n    S.SALE_NUMBER,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.SALE_DATE,\n    S.CLIENT,\n    S.TEAM_MEMBER,\n    S.LOCATION,\n    S.SALE_ITEM,\n    S.SALE_TYPE,\n    S.SERVICE_CATEGORY,\n    S.SKU,\n    S.GROSS_SALES,\n    S.TAX,\n    S.DISCOUNTS,\n    S.COST,\n    S.COMMISSION_BASE,\n    S.COMMISSION,\n    S.PERCENTAGE_COMMISSION,\n    S.CURRENCY_CODE,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "9945fbf4-4ecc-45f7-ab77-f02714de5895",
+      "name": "BQ \u2013 Merge commissions_stage \u2192 commissions",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert commissions_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate commissions_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate commissions_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Commissions (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Commissions (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert commissions_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge commissions_stage \u2192 commissions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

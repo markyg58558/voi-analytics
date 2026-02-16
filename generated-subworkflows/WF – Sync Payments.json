@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Payments",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "661bb7c7-cb1d-493f-9c41-4d19a3384035",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "23cb0a9a-85d3-4c0a-83a8-1ffac2b097a1",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "4cbe9e61-52fe-40d6-8992-58b0a854046a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.payments_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "0ca2be60-55bf-4c91-9dd4-9fab99bf7566",
+      "name": "BQ \u2013 Truncate payments_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.PAYMENTS\nWHERE SALE_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "d014b55a-3f0e-437a-8517-e93dcb72cd08",
+      "name": "Snowflake \u2013 Fetch Payments (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "payments_stage",
+          "mode": "list",
+          "cachedResultName": "payments_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "4ae98a2b-cdac-4c13-b233-de7ada5a92f3",
+      "name": "BQ - Insert payments_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.payments` T\nUSING `victims-of-ink-data-platform.voi_warehouse.payments_stage` S\nON T.PAYMENT_NO = S.PAYMENT_NO\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SALE_NUMBER = S.SALE_NUMBER,\n    APPOINTMENT_REF = S.APPOINTMENT_REF,\n    SALE_ID = S.SALE_ID,\n    APPOINTMENT_ID = S.APPOINTMENT_ID,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    PAYMENT_DATE = S.PAYMENT_DATE,\n    SALE_DATE = S.SALE_DATE,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    CLIENT = S.CLIENT,\n    GIFT_CARD_CODE = S.GIFT_CARD_CODE,\n    TRANSACTION_TYPE = S.TRANSACTION_TYPE,\n    IS_DEPOSIT_REDEMPTION = S.IS_DEPOSIT_REDEMPTION,\n    IS_GIFT_CARD_REDEMPTION = S.IS_GIFT_CARD_REDEMPTION,\n    PAYMENT_METHOD = S.PAYMENT_METHOD,\n    CURRENCY_CODE = S.CURRENCY_CODE,\n    AMOUNT = S.AMOUNT,\n    REFUND_AMOUNT = S.REFUND_AMOUNT,\n    PAYMENT_AMOUNT = S.PAYMENT_AMOUNT,\n    CHANGE_AMOUNT = S.CHANGE_AMOUNT,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    SALE_NUMBER,\n    PAYMENT_NO,\n    APPOINTMENT_REF,\n    SALE_ID,\n    APPOINTMENT_ID,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    CLIENT_ID,\n    PAYMENT_DATE,\n    SALE_DATE,\n    LOCATION,\n    TEAM_MEMBER,\n    CLIENT,\n    GIFT_CARD_CODE,\n    TRANSACTION_TYPE,\n    IS_DEPOSIT_REDEMPTION,\n    IS_GIFT_CARD_REDEMPTION,\n    PAYMENT_METHOD,\n    CURRENCY_CODE,\n    AMOUNT,\n    REFUND_AMOUNT,\n    PAYMENT_AMOUNT,\n    CHANGE_AMOUNT,\n    _loaded_at\n  )\n  VALUES (\n    S.SALE_NUMBER,\n    S.PAYMENT_NO,\n    S.APPOINTMENT_REF,\n    S.SALE_ID,\n    S.APPOINTMENT_ID,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.PAYMENT_DATE,\n    S.SALE_DATE,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.CLIENT,\n    S.GIFT_CARD_CODE,\n    S.TRANSACTION_TYPE,\n    S.IS_DEPOSIT_REDEMPTION,\n    S.IS_GIFT_CARD_REDEMPTION,\n    S.PAYMENT_METHOD,\n    S.CURRENCY_CODE,\n    S.AMOUNT,\n    S.REFUND_AMOUNT,\n    S.PAYMENT_AMOUNT,\n    S.CHANGE_AMOUNT,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "c710fd9d-3bbd-4b7f-8956-960b042c457f",
+      "name": "BQ \u2013 Merge payments_stage \u2192 payments",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert payments_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate payments_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate payments_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Payments (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Payments (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert payments_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge payments_stage \u2192 payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

@@ -1,0 +1,223 @@
+{
+  "name": "WF – Sync Sales",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "69bde577-8fc8-4e30-8252-5578891d3493",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "f5dc1bbf-da9c-4b86-8316-e6f0961d1eb0",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.sales_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "88d15d4b-eb28-4b34-8628-0075aa13c6ef",
+      "name": "BQ – Truncate sales_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.SALES\nWHERE SALE_DATE >= DATEADD(day, -7, CURRENT_TIMESTAMP());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "94b1b887-1882-4576-80ef-022369a6870c",
+      "name": "Snowflake – Fetch Sales (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "sales_stage",
+          "mode": "list",
+          "cachedResultName": "sales_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "2f5f4d94-8355-4ddd-9dbe-8ca5bb51cc95",
+      "name": "BQ - Insert sales_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.sales` T\nUSING `victims-of-ink-data-platform.voi_warehouse.sales_stage` S\nON T.SALE_ID = S.SALE_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SALE_NUMBER = S.SALE_NUMBER,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    APPOINTMENT_ID = S.APPOINTMENT_ID,\n    SALE_DATE = S.SALE_DATE,\n    LOCATION = S.LOCATION,\n    CLIENT = S.CLIENT,\n    CLIENT_GENDER = S.CLIENT_GENDER,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    STATUS = S.STATUS,\n    APPOINTMENT_CHANNEL = S.APPOINTMENT_CHANNEL,\n    PAYMENT_METHOD = S.PAYMENT_METHOD,\n    TRANSACTION_TYPE = S.TRANSACTION_TYPE,\n    PAYMENT_STATUS = S.PAYMENT_STATUS,\n    SERVICE_CHARGE = S.SERVICE_CHARGE,\n    CLIENT_SOURCE = S.CLIENT_SOURCE,\n    CLIENT_RETENTION_SOURCE = S.CLIENT_RETENTION_SOURCE,\n    ITEMS_SOLD = S.ITEMS_SOLD,\n    TOTAL_SALES = S.TOTAL_SALES,\n    GROSS_SALES = S.GROSS_SALES,\n    NET_SALES = S.NET_SALES,\n    TOTAL_REFUNDS = S.TOTAL_REFUNDS,\n    TOTAL_DISCOUNTS = S.TOTAL_DISCOUNTS,\n    TOTAL_TIPS = S.TOTAL_TIPS,\n    TOTAL_PAYMENTS = S.TOTAL_PAYMENTS,\n    TOTAL_TAXES = S.TOTAL_TAXES,\n    TOTAL_SERVICE_CHARGES = S.TOTAL_SERVICE_CHARGES,\n    TOTAL_GIFT_CARDS = S.TOTAL_GIFT_CARDS,\n    TOTAL_CHANGE_AMOUNT = S.TOTAL_CHANGE_AMOUNT,\n    AMOUNT_DUE = S.AMOUNT_DUE,\n    TOTAL_PAYMENTS_AND_REDEMPTIONS = S.TOTAL_PAYMENTS_AND_REDEMPTIONS,\n    TOTAL_GIFT_CARD_REDEMPTIONS = S.TOTAL_GIFT_CARD_REDEMPTIONS,\n    TOTAL_SERVICE_CHARGE_TAXES = S.TOTAL_SERVICE_CHARGE_TAXES,\n    GIFT_CARD_TAXES = S.GIFT_CARD_TAXES,\n    CURRENCY_CODE = S.CURRENCY_CODE,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    SALE_ID,\n    SALE_NUMBER,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    CLIENT_ID,\n    APPOINTMENT_ID,\n    SALE_DATE,\n    LOCATION,\n    CLIENT,\n    CLIENT_GENDER,\n    TEAM_MEMBER,\n    STATUS,\n    APPOINTMENT_CHANNEL,\n    PAYMENT_METHOD,\n    TRANSACTION_TYPE,\n    PAYMENT_STATUS,\n    SERVICE_CHARGE,\n    CLIENT_SOURCE,\n    CLIENT_RETENTION_SOURCE,\n    ITEMS_SOLD,\n    TOTAL_SALES,\n    GROSS_SALES,\n    NET_SALES,\n    TOTAL_REFUNDS,\n    TOTAL_DISCOUNTS,\n    TOTAL_TIPS,\n    TOTAL_PAYMENTS,\n    TOTAL_TAXES,\n    TOTAL_SERVICE_CHARGES,\n    TOTAL_GIFT_CARDS,\n    TOTAL_CHANGE_AMOUNT,\n    AMOUNT_DUE,\n    TOTAL_PAYMENTS_AND_REDEMPTIONS,\n    TOTAL_GIFT_CARD_REDEMPTIONS,\n    TOTAL_SERVICE_CHARGE_TAXES,\n    GIFT_CARD_TAXES,\n    CURRENCY_CODE,\n    _loaded_at\n  )\n  VALUES (\n    S.SALE_ID,\n    S.SALE_NUMBER,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.APPOINTMENT_ID,\n    S.SALE_DATE,\n    S.LOCATION,\n    S.CLIENT,\n    S.CLIENT_GENDER,\n    S.TEAM_MEMBER,\n    S.STATUS,\n    S.APPOINTMENT_CHANNEL,\n    S.PAYMENT_METHOD,\n    S.TRANSACTION_TYPE,\n    S.PAYMENT_STATUS,\n    S.SERVICE_CHARGE,\n    S.CLIENT_SOURCE,\n    S.CLIENT_RETENTION_SOURCE,\n    S.ITEMS_SOLD,\n    S.TOTAL_SALES,\n    S.GROSS_SALES,\n    S.NET_SALES,\n    S.TOTAL_REFUNDS,\n    S.TOTAL_DISCOUNTS,\n    S.TOTAL_TIPS,\n    S.TOTAL_PAYMENTS,\n    S.TOTAL_TAXES,\n    S.TOTAL_SERVICE_CHARGES,\n    S.TOTAL_GIFT_CARDS,\n    S.TOTAL_CHANGE_AMOUNT,\n    S.AMOUNT_DUE,\n    S.TOTAL_PAYMENTS_AND_REDEMPTIONS,\n    S.TOTAL_GIFT_CARD_REDEMPTIONS,\n    S.TOTAL_SERVICE_CHARGE_TAXES,\n    S.GIFT_CARD_TAXES,\n    S.CURRENCY_CODE,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "7002234c-9b56-4a68-b27f-8331edb0fff1",
+      "name": "BQ – Merge sales_stage → sales",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert sales_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ – Truncate sales_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ – Truncate sales_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake – Fetch Sales (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake – Fetch Sales (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert sales_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ – Merge sales_stage → sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d3cc6280-fe4b-4ee0-9318-0c477aacb379",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "id": "hKZRyblVOR9uqIFP",
+  "tags": []
+}

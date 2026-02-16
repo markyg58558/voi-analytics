@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Taxes",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "50c5681e-a177-4570-80bc-a6ecb7d1b2cc",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "89149939-ff7f-40e9-8518-ac7a9ce4d6de",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "e4baf29f-2024-40f3-afff-5cff54dbf864",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.taxes_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "88c723e5-b208-458b-99e8-414b435f328e",
+      "name": "BQ \u2013 Truncate taxes_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.TAXES\nWHERE SALE_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "c494452e-6493-4928-96b0-359c77a081f6",
+      "name": "Snowflake \u2013 Fetch Taxes (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "taxes_stage",
+          "mode": "list",
+          "cachedResultName": "taxes_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "734025e4-7828-4350-b93d-f8045de1138b",
+      "name": "BQ - Insert taxes_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.taxes` T\nUSING `victims-of-ink-data-platform.voi_warehouse.taxes_stage` S\nON T.SALE_ITEM_TAX_ID = S.SALE_ITEM_TAX_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    SALE_ID = S.SALE_ID,\n    SALE_ITEM_ID = S.SALE_ITEM_ID,\n    LOCATION_ID = S.LOCATION_ID,\n    TEAM_MEMBER_ID = S.TEAM_MEMBER_ID,\n    CLIENT_ID = S.CLIENT_ID,\n    SALE_DATE = S.SALE_DATE,\n    LOCATION = S.LOCATION,\n    TEAM_MEMBER = S.TEAM_MEMBER,\n    CLIENT = S.CLIENT,\n    APPOINTMENT_CHANNEL = S.APPOINTMENT_CHANNEL,\n    APPOINTMENT_REF = S.APPOINTMENT_REF,\n    SALE_NUMBER = S.SALE_NUMBER,\n    SALE_STATUS = S.SALE_STATUS,\n    TRANSACTION_TYPE = S.TRANSACTION_TYPE,\n    PAYMENT_METHOD = S.PAYMENT_METHOD,\n    SALE_TYPE = S.SALE_TYPE,\n    SUPPLIER = S.SUPPLIER,\n    BRAND = S.BRAND,\n    CATEGORY = S.CATEGORY,\n    ITEM = S.ITEM,\n    SKU = S.SKU,\n    BARCODE = S.BARCODE,\n    TAX_NAME = S.TAX_NAME,\n    CURRENCY_CODE = S.CURRENCY_CODE,\n    COST = S.COST,\n    NET_SALES = S.NET_SALES,\n    TAX_RATE = S.TAX_RATE,\n    ITEMS_SOLD = S.ITEMS_SOLD,\n    TAX_ON_NET_SALES = S.TAX_ON_NET_SALES,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    SALE_ITEM_TAX_ID,\n    SALE_ID,\n    SALE_ITEM_ID,\n    LOCATION_ID,\n    TEAM_MEMBER_ID,\n    CLIENT_ID,\n    SALE_DATE,\n    LOCATION,\n    TEAM_MEMBER,\n    CLIENT,\n    APPOINTMENT_CHANNEL,\n    APPOINTMENT_REF,\n    SALE_NUMBER,\n    SALE_STATUS,\n    TRANSACTION_TYPE,\n    PAYMENT_METHOD,\n    SALE_TYPE,\n    SUPPLIER,\n    BRAND,\n    CATEGORY,\n    ITEM,\n    SKU,\n    BARCODE,\n    TAX_NAME,\n    CURRENCY_CODE,\n    COST,\n    NET_SALES,\n    TAX_RATE,\n    ITEMS_SOLD,\n    TAX_ON_NET_SALES,\n    _loaded_at\n  )\n  VALUES (\n    S.SALE_ITEM_TAX_ID,\n    S.SALE_ID,\n    S.SALE_ITEM_ID,\n    S.LOCATION_ID,\n    S.TEAM_MEMBER_ID,\n    S.CLIENT_ID,\n    S.SALE_DATE,\n    S.LOCATION,\n    S.TEAM_MEMBER,\n    S.CLIENT,\n    S.APPOINTMENT_CHANNEL,\n    S.APPOINTMENT_REF,\n    S.SALE_NUMBER,\n    S.SALE_STATUS,\n    S.TRANSACTION_TYPE,\n    S.PAYMENT_METHOD,\n    S.SALE_TYPE,\n    S.SUPPLIER,\n    S.BRAND,\n    S.CATEGORY,\n    S.ITEM,\n    S.SKU,\n    S.BARCODE,\n    S.TAX_NAME,\n    S.CURRENCY_CODE,\n    S.COST,\n    S.NET_SALES,\n    S.TAX_RATE,\n    S.ITEMS_SOLD,\n    S.TAX_ON_NET_SALES,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "ac0cfafe-cfef-4ac0-bcdf-26f2890edae4",
+      "name": "BQ \u2013 Merge taxes_stage \u2192 taxes",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert taxes_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate taxes_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate taxes_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Taxes (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Taxes (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert taxes_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge taxes_stage \u2192 taxes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

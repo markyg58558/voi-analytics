@@ -1,0 +1,222 @@
+{
+  "name": "WF \u2013 Sync Stock Movements",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fdc1bf6bc5e2810cebcb73d826bfc4a3f2c197e49b0f9267554d4cf53f41f3e"
+  },
+  "tags": [],
+  "versionId": "3dc59c87-9f15-45fd-a37f-bdc968e6b2df",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "8ed40b7f-e2f9-436d-b04f-bed7b972a331",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1000,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "41cd77d5-ec0f-4ebe-bf14-2aa22ec0bf12",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "TRUNCATE TABLE `victims-of-ink-data-platform.voi_warehouse.stock_movements_stage`;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "e9ccb141-dc0b-4819-b38b-c85a27e6cef7",
+      "name": "BQ \u2013 Truncate stock_movements_stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM FRESHA_DATA_CONNECTOR.FRESHA_DATA_263.STOCK_MOVEMENTS\nWHERE SALE_DATE >= DATEADD(day, -7, CURRENT_DATE());\n"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "4528627d-bdc3-46db-8eba-76bb7c860ef7",
+      "name": "Snowflake \u2013 Fetch Stock Movements (Last 7 Days)",
+      "credentials": {
+        "snowflake": {
+          "id": "uhZz5akEf5hVFSZY",
+          "name": "Snowflake account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "datasetId": {
+          "__rl": true,
+          "value": "voi_warehouse",
+          "mode": "list",
+          "cachedResultName": "voi_warehouse"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "stock_movements_stage",
+          "mode": "list",
+          "cachedResultName": "stock_movements_stage"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "a7403444-1dd4-4953-8479-60036755b228",
+      "name": "BQ - Insert stock_movements_stage",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "MERGE `victims-of-ink-data-platform.voi_warehouse.stock_movements` T\nUSING `victims-of-ink-data-platform.voi_warehouse.stock_movements_stage` S\nON T.STOCK_MOVEMENT_ID = S.STOCK_MOVEMENT_ID\n\nWHEN MATCHED THEN\n  UPDATE SET\n    LOCATION_ID = S.LOCATION_ID,\n    SALE_ID = S.SALE_ID,\n    SALE_DATE = S.SALE_DATE,\n    LOCATION = S.LOCATION,\n    SUPPLIER = S.SUPPLIER,\n    BRAND = S.BRAND,\n    CATEGORY = S.CATEGORY,\n    PRODUCT = S.PRODUCT,\n    PRIMARY_SKU = S.PRIMARY_SKU,\n    BARCODE = S.BARCODE,\n    IS_UNLIMITED = S.IS_UNLIMITED,\n    ADJUSTMENT_REASON = S.ADJUSTMENT_REASON,\n    ADJUSTMENT_REF = S.ADJUSTMENT_REF,\n    QUANTITY = S.QUANTITY,\n    UNIT_COST = S.UNIT_COST,\n    COST = S.COST,\n    RETAIL_PRICE = S.RETAIL_PRICE,\n    _loaded_at = CURRENT_TIMESTAMP()\n\nWHEN NOT MATCHED THEN\n  INSERT (\n    STOCK_MOVEMENT_ID,\n    LOCATION_ID,\n    SALE_ID,\n    SALE_DATE,\n    LOCATION,\n    SUPPLIER,\n    BRAND,\n    CATEGORY,\n    PRODUCT,\n    PRIMARY_SKU,\n    BARCODE,\n    IS_UNLIMITED,\n    ADJUSTMENT_REASON,\n    ADJUSTMENT_REF,\n    QUANTITY,\n    UNIT_COST,\n    COST,\n    RETAIL_PRICE,\n    _loaded_at\n  )\n  VALUES (\n    S.STOCK_MOVEMENT_ID,\n    S.LOCATION_ID,\n    S.SALE_ID,\n    S.SALE_DATE,\n    S.LOCATION,\n    S.SUPPLIER,\n    S.BRAND,\n    S.CATEGORY,\n    S.PRODUCT,\n    S.PRIMARY_SKU,\n    S.BARCODE,\n    S.IS_UNLIMITED,\n    S.ADJUSTMENT_REASON,\n    S.ADJUSTMENT_REF,\n    S.QUANTITY,\n    S.UNIT_COST,\n    S.COST,\n    S.RETAIL_PRICE,\n    CURRENT_TIMESTAMP()\n  );\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "c3d3992c-4010-43c3-8cf4-1040cc154990",
+      "name": "BQ \u2013 Merge stock_movements_stage \u2192 stock movements",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "BQ - Insert stock_movements_stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Truncate stock_movements_stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ \u2013 Truncate stock_movements_stage": {
+      "main": [
+        [
+          {
+            "node": "Snowflake \u2013 Fetch Stock Movements (Last 7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake \u2013 Fetch Stock Movements (Last 7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BQ - Insert stock_movements_stage": {
+      "main": [
+        [
+          {
+            "node": "BQ \u2013 Merge stock_movements_stage \u2192 stock movements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

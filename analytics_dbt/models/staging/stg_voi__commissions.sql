@@ -1,0 +1,27 @@
+select
+  cast(COMMISSION_ID as int64) as commission_id,
+  cast(SALE_ITEM_ID as int64) as sale_item_id,
+  cast(SALE_ID as int64) as sale_id,
+  SALE_NUMBER as sale_number,
+  cast(TEAM_MEMBER_ID as int64) as team_member_id,
+  TEAM_MEMBER as team_member,
+  lower(trim(TEAM_MEMBER)) as team_member_norm,
+  cast(CLIENT_ID as int64) as client_id,
+  CLIENT as client,
+  cast(LOCATION_ID as int64) as location_id,
+  LOCATION as location,
+  SALE_ITEM as sale_item,
+  SALE_TYPE as sale_type,
+  SERVICE_CATEGORY as service_category,
+  SKU as sku,
+  cast(GROSS_SALES as numeric) as gross_sales,
+  cast(TAX as numeric) as tax,
+  cast(COMMISSION_BASE as numeric) as commission_base,
+  cast(COMMISSION as numeric) as commission,
+  cast(PERCENTAGE_COMMISSION as bignumeric) as percentage_commission,
+  CURRENCY_CODE as currency_code,
+  cast(SALE_DATE as timestamp) as sale_ts_utc,
+  date(SALE_DATE, "Australia/Melbourne") as sale_day_melbourne,
+  date_trunc(date(SALE_DATE, "Australia/Melbourne"), week(saturday)) as pay_week_start
+from {{ source('voi_warehouse', 'commissions') }}
+where upper(ifnull(SALE_TYPE, '')) not like '%DEPOSIT%'
