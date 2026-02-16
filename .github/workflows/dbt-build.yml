@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -26,60 +27,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install dbt-bigquery
 
-      - name: Create and validate BigQuery service account key file
-        env:
-          BQ_SERVICE_ACCOUNT_JSON: ${{ secrets.BQ_SERVICE_ACCOUNT_JSON }}
-        run: |
-          mkdir -p "$HOME/.dbt"
-          python - <<'PY'
-          import json
-          import os
-          import pathlib
-          import sys
-
-          raw = os.environ.get("BQ_SERVICE_ACCOUNT_JSON", "").strip()
-          if not raw:
-              print("BQ_SERVICE_ACCOUNT_JSON secret is empty.", file=sys.stderr)
-              sys.exit(1)
-
-          candidate = raw
-          try:
-              parsed = json.loads(candidate)
-          except json.JSONDecodeError:
-              # Handle secrets pasted as escaped one-line JSON containing \n
-              try:
-                  candidate = raw.encode("utf-8").decode("unicode_escape")
-                  parsed = json.loads(candidate)
-              except Exception as exc:
-                  print(f"Invalid JSON in BQ_SERVICE_ACCOUNT_JSON: {exc}", file=sys.stderr)
-                  sys.exit(1)
-
-          required = {"type", "project_id", "private_key", "client_email"}
-          missing = required - set(parsed.keys())
-          if missing:
-              print(f"Service account JSON missing required keys: {sorted(missing)}", file=sys.stderr)
-              sys.exit(1)
-
-          out = pathlib.Path.home() / ".dbt" / "keyfile.json"
-          out.write_text(json.dumps(parsed, indent=2), encoding="utf-8")
-          print(f"Wrote validated keyfile to {out}")
-          PY
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.BQ_SERVICE_ACCOUNT_JSON }}'
 
       - name: Create dbt profile
         run: |
+          mkdir -p "$HOME/.dbt"
           cat > "$HOME/.dbt/profiles.yml" <<'YAML'
           voi_analytics:
             target: prod
             outputs:
               prod:
                 type: bigquery
-                method: service-account
+                method: oauth
                 project: victims-of-ink-data-platform
                 dataset: voi_dbt_prod
                 threads: 4
                 timeout_seconds: 300
                 location: australia-southeast2
-                keyfile: /home/runner/.dbt/keyfile.json
           YAML
 
       - name: dbt deps
