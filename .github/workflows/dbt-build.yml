@@ -1,0 +1,57 @@
+name: dbt Build
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 20:30 UTC = 06:30 AEST / 07:30 AEDT
+    - cron: "30 20 * * *"
+
+jobs:
+  dbt-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-bigquery
+
+      - name: Create BigQuery service account key file
+        run: |
+          mkdir -p "$HOME/.dbt"
+          printf '%s' "${{ secrets.BQ_SERVICE_ACCOUNT_JSON }}" > "$HOME/.dbt/keyfile.json"
+
+      - name: Create dbt profile
+        run: |
+          cat > "$HOME/.dbt/profiles.yml" <<'YAML'
+          voi_analytics:
+            target: prod
+            outputs:
+              prod:
+                type: bigquery
+                method: service-account
+                project: victims-of-ink-data-platform
+                dataset: voi_dbt_prod
+                threads: 4
+                timeout_seconds: 300
+                location: australia-southeast2
+                keyfile: /home/runner/.dbt/keyfile.json
+          YAML
+
+      - name: dbt deps
+        working-directory: analytics_dbt
+        run: dbt deps
+
+      - name: dbt build
+        working-directory: analytics_dbt
+        run: dbt build --target prod

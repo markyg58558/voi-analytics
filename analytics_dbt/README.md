@@ -29,6 +29,24 @@ dbt deps
 dbt build
 ```
 
+## GitHub Actions automation
+
+Workflow file:
+- `/Users/markgraham/Documents/New project/.github/workflows/dbt-build.yml`
+
+Required repository secret:
+- `BQ_SERVICE_ACCOUNT_JSON`: full JSON content of your BigQuery service account key.
+
+How to set secret:
+1. GitHub repo -> Settings -> Secrets and variables -> Actions.
+2. New repository secret.
+3. Name: `BQ_SERVICE_ACCOUNT_JSON`
+4. Value: paste entire key JSON.
+
+How to run:
+1. GitHub repo -> Actions -> `dbt Build` -> Run workflow.
+2. It also runs daily on schedule.
+
 ## Current models
 
 - `stg_voi__commissions`
