@@ -1,6 +1,7 @@
 # VOI Reporting Platform dbt
 
 This dbt project builds reporting models from `voi_warehouse` into curated datasets in BigQuery.
+Model outputs are written to stable schemas: `voi_staging` and `voi_reporting`.
 
 ## First-time setup
 
