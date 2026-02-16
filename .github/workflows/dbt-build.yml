@@ -1,4 +1,4 @@
-name: dbt Build
+name: VOI Reporting dbt Build
 
 on:
   workflow_dispatch:
@@ -36,23 +36,23 @@ jobs:
         run: |
           mkdir -p "$HOME/.dbt"
           cat > "$HOME/.dbt/profiles.yml" <<'YAML'
-          voi_analytics:
+          voi_reporting_platform:
             target: prod
             outputs:
               prod:
                 type: bigquery
                 method: oauth
                 project: victims-of-ink-data-platform
-                dataset: voi_dbt_prod
+                dataset: voi_reporting_prod
                 threads: 4
                 timeout_seconds: 300
                 location: australia-southeast2
           YAML
 
       - name: dbt deps
-        working-directory: analytics_dbt
+        working-directory: voi_reporting_dbt
         run: dbt deps
 
       - name: dbt build
-        working-directory: analytics_dbt
+        working-directory: voi_reporting_dbt
         run: dbt build --target prod

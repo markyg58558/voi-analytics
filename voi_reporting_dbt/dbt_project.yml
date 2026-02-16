@@ -1,8 +1,8 @@
-name: "voi_analytics"
+name: "voi_reporting_platform"
 version: "1.0.0"
 config-version: 2
 
-profile: "voi_analytics"
+profile: "voi_reporting_platform"
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -18,7 +18,7 @@ clean-targets:
   - "logs"
 
 models:
-  voi_analytics:
+  voi_reporting_platform:
     +materialized: view
     staging:
       +schema: voi_staging

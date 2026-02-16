@@ -1,11 +1,11 @@
-voi_analytics:
+voi_reporting_platform:
   target: dev
   outputs:
     dev:
       type: bigquery
       method: service-account
       project: victims-of-ink-data-platform
-      dataset: voi_dbt_dev
+      dataset: voi_reporting_dev
       threads: 4
       timeout_seconds: 300
       location: australia-southeast2

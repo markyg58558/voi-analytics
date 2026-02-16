@@ -1,4 +1,4 @@
-# VOI Analytics dbt
+# VOI Reporting Platform dbt
 
 This dbt project builds reporting models from `voi_warehouse` into curated datasets in BigQuery.
 
@@ -12,7 +12,7 @@ pip install dbt-bigquery
 2. Create your dbt profile:
 ```bash
 mkdir -p ~/.dbt
-cp /Users/markgraham/Documents/New\ project/analytics_dbt/profiles.example.yml ~/.dbt/profiles.yml
+cp /Users/markgraham/Documents/New\ project/voi_reporting_dbt/profiles.example.yml ~/.dbt/profiles.yml
 ```
 
 3. Edit `~/.dbt/profiles.yml`:
@@ -21,7 +21,7 @@ cp /Users/markgraham/Documents/New\ project/analytics_dbt/profiles.example.yml ~
 
 ## Run commands
 
-From `/Users/markgraham/Documents/New project/analytics_dbt`:
+From `/Users/markgraham/Documents/New project/voi_reporting_dbt`:
 
 ```bash
 dbt debug
@@ -44,7 +44,7 @@ How to set secret:
 4. Value: paste entire key JSON.
 
 How to run:
-1. GitHub repo -> Actions -> `dbt Build` -> Run workflow.
+1. GitHub repo -> Actions -> `VOI Reporting dbt Build` -> Run workflow.
 2. It also runs daily on schedule.
 
 ## Current models
@@ -54,6 +54,8 @@ How to run:
 - `stg_voi__team_members`
 - `dim_artists`
 - `mart_payroll_weekly_artist`
+- `mart_payroll_weekly_artist_snapshot`
+- `qa_payroll_snapshot_current_week`
 
 ## Notes
 
