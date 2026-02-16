@@ -12,3 +12,15 @@ models:
         tests: [not_null]
       - name: team_member_id
         tests: [not_null]
+
+  - name: mart_payroll_weekly_artist_snapshot
+    columns:
+      - name: pay_week_start
+        tests: [not_null]
+      - name: team_member_id
+        tests: [not_null]
+
+  - name: qa_payroll_snapshot_current_week
+    columns:
+      - name: pay_week_start
+        tests: [not_null]
