@@ -13,6 +13,13 @@ models:
       - name: team_member_id
         tests: [not_null]
 
+  - name: mart_payroll_artist_daily
+    columns:
+      - name: activity_date
+        tests: [not_null]
+      - name: team_member_id
+        tests: [not_null]
+
   - name: mart_payroll_weekly_artist_snapshot
     columns:
       - name: pay_week_start

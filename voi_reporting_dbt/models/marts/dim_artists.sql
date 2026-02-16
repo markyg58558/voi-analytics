@@ -14,15 +14,8 @@ with ranked_team_members as (
   from {{ ref('stg_voi__team_members') }}
 ),
 artist_config as (
-  select
-    cast(team_member_id as int64) as team_member_id,
-    artist_name,
-    artist_name_normalized,
-    cast(commission_rate as numeric) as commission_rate,
-    cast(gst_registered as bool) as gst_registered,
-    cast(active as bool) as active,
-    abn
-  from {{ source('voi_reporting', 'artist_payout_config') }}
+  select *
+  from {{ ref('stg_voi__artist_payout_config') }}
 )
 select
   tm.team_member_id,

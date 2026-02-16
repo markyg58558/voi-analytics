@@ -21,9 +21,6 @@ with base as (
     deposits_redeemed,
     deposits_refunded
   from {{ ref('mart_payroll_weekly_artist') }}
-  {% if is_incremental() %}
-    where pay_week_start >= date_sub(date_trunc(current_date("Australia/Melbourne"), week(saturday)), interval 8 week)
-  {% endif %}
 )
 
 select * from base
