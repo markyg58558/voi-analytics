@@ -109,12 +109,14 @@ split_calc as (
     case
       when split_mode = 'THRESHOLD_CASH' then least(payout_total, ifnull(threshold_amount, payout_total))
       when split_mode = 'YULI_SPECIAL' and payout_total > ifnull(high_amount_threshold, 999999999) then ifnull(high_amount_bank_fixed, payout_total)
+      when split_mode = 'YULI_SPECIAL' then round(payout_total * ifnull(bank_pct, 0.5), 2)
       when split_mode = 'PERCENT_SPLIT' then round(payout_total * ifnull(bank_pct, 1), 2)
       else payout_total
     end as bank_raw,
     case
       when split_mode = 'THRESHOLD_CASH' then greatest(payout_total - ifnull(threshold_amount, payout_total), 0)
       when split_mode = 'YULI_SPECIAL' and payout_total > ifnull(high_amount_threshold, 999999999) then greatest(payout_total - ifnull(high_amount_bank_fixed, payout_total), 0)
+      when split_mode = 'YULI_SPECIAL' then round(payout_total * ifnull(cash_pct, 0.5), 2)
       when split_mode = 'PERCENT_SPLIT' then round(payout_total * ifnull(cash_pct, 0), 2)
       else 0
     end as cash_raw
