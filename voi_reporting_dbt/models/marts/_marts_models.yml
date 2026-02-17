@@ -47,3 +47,12 @@ models:
     columns:
       - name: pay_week_start
         tests: [not_null]
+
+  - name: mart_cash_transactions
+    columns:
+      - name: inv_no
+        tests: [not_null]
+      - name: date
+        tests: [not_null]
+      - name: amount
+        tests: [not_null]
