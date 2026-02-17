@@ -3,10 +3,10 @@ with artist_master as (
     artist_name,
     artist_name_normalized,
     first_name,
-    nullif(abn, '') as abn,
-    cast(commission_rate_pct as numeric) as commission_rate_pct,
-    cast(gst_registered as bool) as gst_registered,
-    cast(active as bool) as active,
+    nullif(trim(cast(abn as string)), '') as abn,
+    safe_cast(cast(commission_rate_pct as string) as numeric) as commission_rate_pct,
+    safe_cast(cast(gst_registered as string) as bool) as gst_registered,
+    safe_cast(cast(active as string) as bool) as active,
     xero_ref
   from {{ ref('artist_master_seed') }}
 ),
