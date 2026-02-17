@@ -1,0 +1,32 @@
+artist_name_normalized,effective_from,effective_to,split_mode,bank_pct,cash_pct,threshold_amount,high_amount_threshold,high_amount_bank_fixed,cash_rounding_unit,cash_rounding_mode,remainder_to_bank,active
+enrico bigi,2020-01-01,,PERCENT_SPLIT,0.30,0.70,,, ,10,nearest,true,true
+digby stewart,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+serhat aslan,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+chanelle pititto,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+milli bug,2020-01-01,,THRESHOLD_CASH,,,1500,, ,10,nearest,true,true
+niki peppers,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+zoe clues,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+tom rattle,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+yesid correa,2020-01-01,,THRESHOLD_CASH,,,1000,, ,10,nearest,true,true
+yuli prajapati,2020-01-01,,YULI_SPECIAL,0.50,0.50,,3000,1500,10,nearest,true,true
+oli john,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+syd richmond,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+tanya putthapipat,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+will halstead-smith,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+pau costa,2020-01-01,,THRESHOLD_CASH,,,500,, ,10,nearest,true,true
+hayley bayley,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+dappy tattoo,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+nari janphanich,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+tobias meredith,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+david carry,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+joy j.vell guest,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+brandon harry,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+cassy martin,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+bradley thompson,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+lucas marques,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+rafael couto,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+saitama,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+woody,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+juff,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true
+eunji,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,false
+brian ledda,2020-01-01,,PERCENT_SPLIT,1.00,0.00,,, ,5,nearest,true,true

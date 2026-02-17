@@ -50,15 +50,20 @@ How to run:
 
 ## Current models
 
-- `stg_voi__commissions`
 - `stg_voi__deposits`
+- `stg_voi__sale_items`
+- `stg_voi__sales`
 - `stg_voi__team_members`
 - `dim_artists`
+- `dim_artist_payout_rules`
+- `fct_artist_payout_line_items`
 - `mart_payroll_weekly_artist`
+- `mart_payroll_artist_daily`
 - `mart_payroll_weekly_artist_snapshot`
 - `qa_payroll_snapshot_current_week`
 
 ## Notes
 
 - Business week is Melbourne time with Saturday week start.
-- Payroll owed in mart currently uses Fresha `COMMISSION`.
+- Artist payout logic is owned by seed tables (`artist_master_seed`, `artist_payout_rules_seed`).
+- Fresha data is used for sales activity and `team_member_id` matching only.

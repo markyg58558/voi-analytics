@@ -5,6 +5,7 @@ sources:
     database: victims-of-ink-data-platform
     schema: voi_warehouse
     tables:
-      - name: commissions
       - name: deposits
+      - name: sale_items
+      - name: sales
       - name: team_members

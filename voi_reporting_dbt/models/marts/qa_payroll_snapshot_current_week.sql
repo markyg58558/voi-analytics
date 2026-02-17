@@ -6,7 +6,7 @@ with params as (
 src as (
   select
     pay_week_start,
-    round(sum(ifnull(tattoo_commission_owed_fresha, 0)), 2) as src_tattoo_commission_owed,
+    round(sum(ifnull(tattoo_commission_owed, 0)), 2) as src_tattoo_commission_owed,
     sum(ifnull(tattoo_sales_count, 0)) as src_tattoo_sales_count
   from {{ ref('mart_payroll_weekly_artist') }}
   where pay_week_start = (select week_start from params)

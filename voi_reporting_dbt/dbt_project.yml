@@ -25,3 +25,7 @@ models:
     marts:
       +schema: voi_reporting
       +materialized: table
+
+seeds:
+  voi_reporting_platform:
+    +schema: voi_reporting

@@ -1,0 +1,19 @@
+version: 2
+
+seeds:
+  - name: artist_master_seed
+    columns:
+      - name: artist_name_normalized
+        tests: [not_null, unique]
+
+  - name: artist_payout_rules_seed
+    columns:
+      - name: artist_name_normalized
+        tests: [not_null]
+      - name: split_mode
+        tests: [not_null]
+
+  - name: artist_name_alias_seed
+    columns:
+      - name: fresha_name_normalized
+        tests: [not_null, unique]

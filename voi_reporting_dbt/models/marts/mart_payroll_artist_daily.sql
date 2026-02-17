@@ -1,12 +1,14 @@
 with tattoo as (
   select
-    sale_day_melbourne as activity_date,
+    sale_day as activity_date,
     team_member_id,
-    team_member as team_member_name,
+    artist_name as team_member_name,
     count(distinct sale_id) as tattoo_sales_count,
-    round(sum(ifnull(commission_base, 0)), 2) as tattoo_commission_base,
-    round(sum(ifnull(commission, 0)), 2) as tattoo_commission_owed_fresha
-  from {{ ref('stg_voi__commissions') }}
+    round(sum(ifnull(payout_basis_amount, 0)), 2) as tattoo_commission_base,
+    round(sum(ifnull(payout_total, 0)), 2) as tattoo_commission_owed,
+    round(sum(ifnull(bank_payout_amount, 0)), 2) as bank_payout_amount,
+    round(sum(ifnull(cash_payout_amount, 0)), 2) as cash_payout_amount
+  from {{ ref('fct_artist_payout_line_items') }}
   group by 1, 2, 3
 ),
 deposit as (
@@ -27,7 +29,9 @@ select
   coalesce(t.team_member_name, d.team_member_name) as team_member_name,
   ifnull(t.tattoo_sales_count, 0) as tattoo_sales_count,
   ifnull(t.tattoo_commission_base, 0) as tattoo_commission_base,
-  ifnull(t.tattoo_commission_owed_fresha, 0) as tattoo_commission_owed_fresha,
+  ifnull(t.tattoo_commission_owed, 0) as tattoo_commission_owed,
+  ifnull(t.bank_payout_amount, 0) as bank_payout_amount,
+  ifnull(t.cash_payout_amount, 0) as cash_payout_amount,
   ifnull(d.deposit_txn_count, 0) as deposit_txn_count,
   ifnull(d.deposits_collected, 0) as deposits_collected,
   ifnull(d.deposits_redeemed, 0) as deposits_redeemed,

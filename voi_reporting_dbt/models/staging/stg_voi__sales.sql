@@ -1,0 +1,18 @@
+select
+  cast(SALE_ID as int64) as sale_id,
+  SALE_NUMBER as sale_number,
+  cast(TEAM_MEMBER_ID as int64) as team_member_id,
+  TEAM_MEMBER as team_member,
+  cast(CLIENT_ID as int64) as client_id,
+  CLIENT as client,
+  STATUS as sale_status,
+  cast(TOTAL_SALES as numeric) as total_sales,
+  cast(GROSS_SALES as numeric) as gross_sales,
+  cast(NET_SALES as numeric) as net_sales,
+  cast(TOTAL_DISCOUNTS as numeric) as total_discounts,
+  cast(TOTAL_TAXES as numeric) as total_taxes,
+  CURRENCY_CODE as currency_code,
+  cast(SALE_DATE as timestamp) as sale_ts_utc,
+  date(SALE_DATE, "Australia/Melbourne") as sale_day_melbourne,
+  date_trunc(date(SALE_DATE, "Australia/Melbourne"), week(saturday)) as pay_week_start
+from {{ source('voi_warehouse', 'sales') }}

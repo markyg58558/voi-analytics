@@ -3,8 +3,24 @@ version: 2
 models:
   - name: dim_artists
     columns:
-      - name: team_member_id
+      - name: artist_name_normalized
         tests: [not_null, unique]
+
+  - name: dim_artist_payout_rules
+    columns:
+      - name: artist_name_normalized
+        tests: [not_null]
+      - name: split_mode
+        tests: [not_null]
+
+  - name: fct_artist_payout_line_items
+    columns:
+      - name: sale_item_id
+        tests: [not_null]
+      - name: artist_name_normalized
+        tests: [not_null]
+      - name: payout_total
+        tests: [not_null]
 
   - name: mart_payroll_weekly_artist
     columns:
