@@ -40,6 +40,15 @@ rules as (
   from {{ ref('dim_artist_payout_rules') }}
   where active = true
 ),
+sales_payment_status as (
+  select
+    sale_id,
+    total_sales as sale_total_amount,
+    total_payments as sale_total_payments,
+    sale_status,
+    payment_status
+  from {{ ref('stg_voi__sales') }}
+),
 base as (
   select
     t.*,
@@ -57,6 +66,14 @@ base as (
     r.cash_rounding_unit,
     r.cash_rounding_mode,
     r.remainder_to_bank,
+    sp.sale_total_amount,
+    sp.sale_total_payments,
+    sp.sale_status,
+    sp.payment_status,
+    case
+      when ifnull(sp.sale_total_amount, 0) <= 0 then 0
+      else least(greatest(sp.sale_total_payments / sp.sale_total_amount, 0), 1)
+    end as collection_ratio,
     round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) as payout_basis_amount_ex_gst,
     round(
       round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100,
@@ -87,6 +104,26 @@ base as (
           else 0
         end,
       2
+    ) as payout_total_earned,
+    round(
+      (
+        round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100
+        + case
+            when ifnull(a.gst_registered, false)
+              then round(
+                round(
+                  round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100,
+                  2
+                ) * 0.1,
+                2
+              )
+            else 0
+          end
+      ) * case
+            when ifnull(sp.sale_total_amount, 0) <= 0 then 0
+            else least(greatest(sp.sale_total_payments / sp.sale_total_amount, 0), 1)
+          end,
+      2
     ) as payout_total
   from tattoo_sale_items t
   left join artists a
@@ -102,6 +139,8 @@ base as (
     on r.artist_name_normalized = coalesce(a.artist_name_normalized, t.team_member_norm)
    and t.sale_day >= r.effective_from
    and (r.effective_to is null or t.sale_day <= r.effective_to)
+  left join sales_payment_status sp
+    on t.sale_id = sp.sale_id
 ),
 split_calc as (
   select
@@ -154,6 +193,12 @@ select
   payout_basis_amount_ex_gst as payout_basis_amount,
   payout_commission_ex_gst,
   payout_gst_topup,
+  payout_total_earned,
+  collection_ratio,
+  sale_total_amount,
+  sale_total_payments,
+  sale_status,
+  payment_status,
   commission_rate_pct,
   gst_registered,
   xero_ref,
