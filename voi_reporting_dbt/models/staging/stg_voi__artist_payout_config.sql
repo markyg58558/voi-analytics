@@ -25,5 +25,6 @@ select
   cast(null as bool) as active,
   cast(null as string) as abn,
   cast(null as timestamp) as updated_at
+from (select 1 as _empty_row)
 where 1 = 0
 {% endif %}
