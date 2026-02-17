@@ -14,7 +14,7 @@ with tattoo_sale_items as (
     si.category,
     si.item_name,
     si.quantity,
-    si.total_sales as payout_basis_amount,
+    si.total_sales as gross_sale_amount,
     si.currency_code
   from {{ ref('stg_voi__sale_items') }} si
   where (
@@ -57,7 +57,37 @@ base as (
     r.cash_rounding_unit,
     r.cash_rounding_mode,
     r.remainder_to_bank,
-    round(ifnull(t.payout_basis_amount, 0) * ifnull(a.commission_rate_pct, 0) / 100, 2) as payout_total
+    round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) as payout_basis_amount_ex_gst,
+    round(
+      round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100,
+      2
+    ) as payout_commission_ex_gst,
+    case
+      when ifnull(a.gst_registered, false)
+        then round(
+          round(
+            round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100,
+            2
+          ) * 0.1,
+          2
+        )
+      else 0
+    end as payout_gst_topup,
+    round(
+      round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100
+      + case
+          when ifnull(a.gst_registered, false)
+            then round(
+              round(
+                round(ifnull(t.gross_sale_amount, 0) / 1.1, 2) * ifnull(a.commission_rate_pct, 0) / 100,
+                2
+              ) * 0.1,
+              2
+            )
+          else 0
+        end,
+      2
+    ) as payout_total
   from tattoo_sale_items t
   left join artists a
     on (
@@ -117,7 +147,11 @@ select
   category,
   item_name,
   quantity,
-  payout_basis_amount,
+  gross_sale_amount,
+  payout_basis_amount_ex_gst,
+  payout_basis_amount_ex_gst as payout_basis_amount,
+  payout_commission_ex_gst,
+  payout_gst_topup,
   commission_rate_pct,
   gst_registered,
   xero_ref,
