@@ -14,6 +14,7 @@ select
   cast(NET_SALES as numeric) as net_sales,
   cast(TOTAL_DISCOUNTS as numeric) as total_discounts,
   cast(TOTAL_TAXES as numeric) as total_taxes,
+  cast(TOTAL_PAYMENTS as numeric) as total_payments,
   CURRENCY_CODE as currency_code,
   cast(SALE_DATE as timestamp) as sale_ts_utc,
   date(SALE_DATE, "Australia/Melbourne") as sale_day_melbourne,
