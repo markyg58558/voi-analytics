@@ -12,3 +12,12 @@ models:
         tests: [not_null]
       - name: split_mode
         tests: [not_null]
+
+  - name: mart_lead_completion_match
+    columns:
+      - name: lead_id
+        tests: [not_null, unique]
+      - name: lead_created_at
+        tests: [not_null]
+      - name: is_completed
+        tests: [not_null]
