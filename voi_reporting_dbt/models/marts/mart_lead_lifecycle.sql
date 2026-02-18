@@ -109,6 +109,21 @@ chosen_booking as (
   where lead_rank = 1
     and booking_rank = 1
 ),
+sale_artists_by_sale as (
+  select
+    si.sale_id,
+    count(distinct si.team_member_id) as artist_count,
+    any_value(si.team_member_id) as completed_artist_team_member_id,
+    any_value(si.team_member) as completed_artist_name
+  from {{ ref('stg_voi__sale_items') }} si
+  where (
+      upper(ifnull(si.sale_type, '')) like '%TATTOO%'
+      or upper(ifnull(si.category, '')) like '%TATTOO%'
+      or upper(ifnull(si.item_name, '')) like '%TATTOO%'
+    )
+    and upper(ifnull(si.sale_type, '')) not like '%DEPOSIT%'
+  group by 1
+),
 sale_candidates as (
   select
     l.lead_id,
@@ -116,8 +131,15 @@ sale_candidates as (
     s.sale_number,
     s.sale_ts_utc,
     s.sale_day_melbourne,
-    s.team_member_id,
-    s.team_member as completed_artist,
+    case
+      when sa.artist_count > 1 then null
+      else sa.completed_artist_team_member_id
+    end as team_member_id,
+    case
+      when sa.artist_count > 1 then 'Multiple Artists'
+      when sa.artist_count = 1 then sa.completed_artist_name
+      else s.team_member
+    end as completed_artist,
     s.sale_status,
     s.payment_status,
     s.total_sales,
@@ -140,6 +162,8 @@ sale_candidates as (
    and s.sale_ts_utc < timestamp_add(l.created_at, interval 180 day)
    and upper(ifnull(s.transaction_type, '')) = 'SALE'
    and upper(ifnull(s.sale_status, '')) in ('COMPLETED', 'PART PAID')
+  left join sale_artists_by_sale sa
+    on s.sale_id = sa.sale_id
 ),
 chosen_sale as (
   select *
@@ -181,6 +205,7 @@ select
   b.booking_id as matched_booking_id,
   b.appointment_id as matched_appointment_id,
   b.scheduled_ts_utc as booked_at,
+  datetime(b.scheduled_ts_utc, "Australia/Melbourne") as booked_at_melbourne,
   b.service as booked_service,
   b.booked_artist,
   b.booking_status,
@@ -189,6 +214,7 @@ select
   s.sale_id as matched_sale_id,
   s.sale_number,
   s.sale_ts_utc as completed_at,
+  datetime(s.sale_ts_utc, "Australia/Melbourne") as completed_at_melbourne,
   s.completed_artist,
   s.team_member_id as matched_sale_team_member_id,
   s.sale_status as matched_sale_status,
