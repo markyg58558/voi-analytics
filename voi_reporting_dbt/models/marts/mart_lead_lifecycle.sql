@@ -185,7 +185,6 @@ select
   l.how_heard,
   l.preferred_artist,
   l.form_name,
-  l.assigned_to,
   l.gclid,
   l.fbclid,
   l.msclkid,

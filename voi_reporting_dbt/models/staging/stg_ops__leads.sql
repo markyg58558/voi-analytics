@@ -26,7 +26,6 @@ select
   form_name,
   cast(consent_marketing as bool) as consent_marketing,
   status as lead_status,
-  assigned_to,
   cast(created_at as timestamp) as created_at,
   cast(updated_at as timestamp) as updated_at,
   cast(_ingested_at as timestamp) as ingested_at
