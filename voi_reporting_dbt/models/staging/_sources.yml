@@ -5,7 +5,14 @@ sources:
     database: victims-of-ink-data-platform
     schema: voi_warehouse
     tables:
+      - name: clients
       - name: deposits
       - name: sale_items
       - name: sales
       - name: team_members
+
+  - name: voi_ops
+    database: victims-of-ink-data-platform
+    schema: voi_ops
+    tables:
+      - name: leads_inbox_raw

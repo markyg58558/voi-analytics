@@ -24,6 +24,18 @@ models:
       - name: pay_week_start
         tests: [not_null]
 
+  - name: stg_voi__clients
+    columns:
+      - name: client_id
+        tests: [not_null]
+
+  - name: stg_ops__leads
+    columns:
+      - name: lead_id
+        tests: [not_null]
+      - name: email
+        tests: [not_null]
+
   - name: stg_voi__team_members
     columns:
       - name: team_member_id

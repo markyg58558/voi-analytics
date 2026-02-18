@@ -56,3 +56,10 @@ models:
         tests: [not_null]
       - name: amount
         tests: [not_null]
+
+  - name: mart_lead_client_match
+    columns:
+      - name: lead_id
+        tests: [not_null, unique]
+      - name: lead_created_at
+        tests: [not_null]
