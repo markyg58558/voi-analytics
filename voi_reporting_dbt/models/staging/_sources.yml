@@ -5,6 +5,7 @@ sources:
     database: victims-of-ink-data-platform
     schema: voi_warehouse
     tables:
+      - name: bookings
       - name: clients
       - name: deposits
       - name: sale_items

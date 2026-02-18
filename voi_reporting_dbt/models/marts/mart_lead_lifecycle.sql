@@ -72,43 +72,59 @@ leads_with_client as (
   left join clients c
     on b.client_id = c.client_id
 ),
-sales_filtered as (
+booking_candidates as (
   select
-    sale_id,
-    sale_number,
-    client_id,
-    team_member_id,
-    team_member,
-    sale_status,
-    payment_status,
-    total_sales,
-    total_payments,
-    currency_code,
-    sale_ts_utc,
-    sale_day_melbourne
-  from {{ ref('stg_voi__sales') }}
-  where upper(ifnull(transaction_type, '')) = 'SALE'
-    and upper(ifnull(sale_status, '')) in ('COMPLETED', 'PART PAID')
-    and client_id is not null
+    l.lead_id,
+    b.booking_id,
+    b.appointment_id,
+    b.scheduled_ts_utc,
+    b.service,
+    b.team_member as booked_artist,
+    b.booking_status,
+    timestamp_diff(b.scheduled_ts_utc, l.created_at, hour) as hours_to_book,
+    date_diff(
+      date(b.scheduled_ts_utc, "Australia/Melbourne"),
+      date(l.created_at, "Australia/Melbourne"),
+      day
+    ) as days_to_book,
+    row_number() over (
+      partition by l.lead_id
+      order by timestamp_diff(b.scheduled_ts_utc, l.created_at, hour) asc, b.scheduled_ts_utc asc, b.booking_id asc
+    ) as lead_rank,
+    row_number() over (
+      partition by b.booking_id
+      order by timestamp_diff(b.scheduled_ts_utc, l.created_at, hour) asc, l.created_at desc, l.lead_id asc
+    ) as booking_rank
+  from leads_with_client l
+  join {{ ref('stg_voi__bookings') }} b
+    on l.matched_client_id = b.client_id
+   and b.scheduled_ts_utc >= l.created_at
+   and b.scheduled_ts_utc < timestamp_add(l.created_at, interval 180 day)
+   and ifnull(b.is_cancelled, false) = false
+   and upper(ifnull(b.booking_status, '')) not like '%CANCEL%'
+),
+chosen_booking as (
+  select *
+  from booking_candidates
+  where lead_rank = 1
+    and booking_rank = 1
 ),
 sale_candidates as (
   select
     l.lead_id,
-    l.created_at as lead_created_at,
-    l.matched_client_id,
     s.sale_id,
     s.sale_number,
     s.sale_ts_utc,
     s.sale_day_melbourne,
     s.team_member_id,
-    s.team_member,
+    s.team_member as completed_artist,
     s.sale_status,
     s.payment_status,
     s.total_sales,
     s.total_payments,
     s.currency_code,
-    timestamp_diff(s.sale_ts_utc, l.created_at, hour) as hours_to_sale,
-    date_diff(s.sale_day_melbourne, date(l.created_at, "Australia/Melbourne"), day) as days_to_sale,
+    timestamp_diff(s.sale_ts_utc, l.created_at, hour) as hours_to_complete,
+    date_diff(s.sale_day_melbourne, date(l.created_at, "Australia/Melbourne"), day) as days_to_complete,
     row_number() over (
       partition by l.lead_id
       order by timestamp_diff(s.sale_ts_utc, l.created_at, hour) asc, s.sale_ts_utc asc, s.sale_id asc
@@ -118,10 +134,12 @@ sale_candidates as (
       order by timestamp_diff(s.sale_ts_utc, l.created_at, hour) asc, l.created_at desc, l.lead_id asc
     ) as sale_rank
   from leads_with_client l
-  join sales_filtered s
+  join {{ ref('stg_voi__sales') }} s
     on l.matched_client_id = s.client_id
    and s.sale_ts_utc >= l.created_at
    and s.sale_ts_utc < timestamp_add(l.created_at, interval 180 day)
+   and upper(ifnull(s.transaction_type, '')) = 'SALE'
+   and upper(ifnull(s.sale_status, '')) in ('COMPLETED', 'PART PAID')
 ),
 chosen_sale as (
   select *
@@ -133,6 +151,7 @@ select
   l.lead_id,
   l.created_at as lead_created_at,
   l.updated_at as lead_updated_at,
+  l.lead_status as lead_status_raw,
   l.first_name,
   l.last_name,
   l.full_name,
@@ -142,7 +161,6 @@ select
   l.how_heard,
   l.preferred_artist,
   l.form_name,
-  l.lead_status,
   l.assigned_to,
   l.gclid,
   l.fbclid,
@@ -155,36 +173,47 @@ select
   l.landing_page_url,
   l.referrer_url,
   l.matched_client_id,
+  case when l.matched_client_id is not null then true else false end as is_client_matched,
   l.client_match_method,
   l.matched_client_name,
   l.matched_client_email,
   l.matched_client_mobile,
-  c.sale_id as matched_sale_id,
-  c.sale_number as matched_sale_number,
-  c.sale_ts_utc as matched_sale_ts_utc,
-  c.sale_day_melbourne as matched_sale_day,
-  c.team_member_id as matched_sale_team_member_id,
-  c.team_member as matched_sale_team_member_name,
-  c.sale_status as matched_sale_status,
-  c.payment_status as matched_payment_status,
-  c.total_sales as matched_sale_total_sales,
-  c.total_payments as matched_sale_total_payments,
-  c.currency_code,
-  c.days_to_sale,
-  c.hours_to_sale,
+  b.booking_id as matched_booking_id,
+  b.appointment_id as matched_appointment_id,
+  b.scheduled_ts_utc as booked_at,
+  b.service as booked_service,
+  b.booked_artist,
+  b.booking_status,
+  b.days_to_book,
+  case when b.booking_id is not null then true else false end as is_booked,
+  s.sale_id as matched_sale_id,
+  s.sale_number,
+  s.sale_ts_utc as completed_at,
+  s.completed_artist,
+  s.team_member_id as matched_sale_team_member_id,
+  s.sale_status as matched_sale_status,
+  s.payment_status as matched_payment_status,
+  s.total_sales as sale_amount,
+  s.total_payments as payment_amount,
+  s.currency_code,
+  s.days_to_complete,
+  s.hours_to_complete,
   case
-    when c.sale_id is null then null
-    when c.days_to_sale = 0 then 'same_day'
-    when c.days_to_sale <= 7 then 'within_7_days'
-    when c.days_to_sale <= 30 then 'within_30_days'
+    when s.sale_id is null then null
+    when s.days_to_complete = 0 then 'same_day'
+    when s.days_to_complete <= 7 then 'within_7_days'
+    when s.days_to_complete <= 30 then 'within_30_days'
     else 'after_30_days'
   end as conversion_window,
-  case when c.sale_id is null then false else true end as is_completed,
+  case when s.sale_id is not null then true else false end as is_completed,
   case
-    when c.sale_id is not null then 'completed'
-    when l.matched_client_id is null then 'no_client_match'
-    else 'no_sale_match'
-  end as completion_status
+    when s.sale_id is not null then 'completed'
+    when b.booking_id is not null then 'booked'
+    when upper(ifnull(l.lead_status, '')) in ('LOST', 'CLOSED_LOST', 'CANCELLED') then 'lost'
+    else 'new_inquiry'
+  end as lifecycle_status
 from leads_with_client l
-left join chosen_sale c
-  on l.lead_id = c.lead_id
+left join chosen_booking b
+  on l.lead_id = b.lead_id
+left join chosen_sale s
+  on l.lead_id = s.lead_id

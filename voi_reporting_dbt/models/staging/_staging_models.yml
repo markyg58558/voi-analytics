@@ -1,6 +1,13 @@
 version: 2
 
 models:
+  - name: stg_voi__bookings
+    columns:
+      - name: booking_id
+        tests: [not_null]
+      - name: client_id
+        tests: [not_null]
+
   - name: stg_voi__deposits
     columns:
       - name: deposit_id

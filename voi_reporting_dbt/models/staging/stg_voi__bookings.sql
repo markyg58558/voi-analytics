@@ -1,0 +1,20 @@
+select
+  cast(BOOKING_ID as int64) as booking_id,
+  cast(APPOINTMENT_ID as int64) as appointment_id,
+  cast(CLIENT_ID as int64) as client_id,
+  cast(TEAM_MEMBER_ID as int64) as team_member_id,
+  TEAM_MEMBER as team_member,
+  CLIENT as client,
+  SERVICE as service,
+  CATEGORY as category,
+  STATUS as booking_status,
+  cast(SCHEDULED_DATE as date) as scheduled_date,
+  cast(SCHEDULED_TIME as datetime) as scheduled_time_local,
+  timestamp(cast(SCHEDULED_TIME as datetime), "Australia/Melbourne") as scheduled_ts_utc,
+  cast(CREATED_DATE as datetime) as created_time_local,
+  timestamp(cast(CREATED_DATE as datetime), "Australia/Melbourne") as created_ts_utc,
+  cast(IS_CANCELLED as bool) as is_cancelled,
+  cast(IS_NO_SHOW as bool) as is_no_show,
+  cast(IS_ONLINE as bool) as is_online,
+  cast(_loaded_at as timestamp) as loaded_at
+from {{ source('voi_warehouse', 'bookings') }}
