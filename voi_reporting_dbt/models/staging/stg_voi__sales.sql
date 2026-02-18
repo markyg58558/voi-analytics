@@ -16,7 +16,10 @@ select
   cast(TOTAL_TAXES as numeric) as total_taxes,
   cast(TOTAL_PAYMENTS as numeric) as total_payments,
   CURRENCY_CODE as currency_code,
-  cast(SALE_DATE as timestamp) as sale_ts_utc,
-  date(SALE_DATE, "Australia/Melbourne") as sale_day_melbourne,
-  date_trunc(date(SALE_DATE, "Australia/Melbourne"), week(saturday)) as pay_week_start
+  cast(SALE_DATE as timestamp) as sale_ts_raw_utc,
+  cast(SALE_DATE as datetime) as sale_datetime_local,
+  -- Fresha SALE_DATE arrives as local wall-clock time; interpret it in Melbourne tz.
+  timestamp(cast(SALE_DATE as datetime), "Australia/Melbourne") as sale_ts_utc,
+  date(cast(SALE_DATE as datetime)) as sale_day_melbourne,
+  date_trunc(date(cast(SALE_DATE as datetime)), week(saturday)) as pay_week_start
 from {{ source('voi_warehouse', 'sales') }}

@@ -174,7 +174,9 @@ chosen_sale as (
 select
   l.lead_id,
   l.created_at as lead_created_at,
+  datetime(l.created_at, "Australia/Melbourne") as lead_created_at_melbourne,
   l.updated_at as lead_updated_at,
+  datetime(l.updated_at, "Australia/Melbourne") as lead_updated_at_melbourne,
   l.lead_status as lead_status_raw,
   l.first_name,
   l.last_name,
@@ -234,7 +236,7 @@ select
   case
     when s.sale_id is not null then 'completed'
     when b.booking_id is not null then 'booked'
-    when upper(ifnull(l.lead_status, '')) in ('LOST', 'CLOSED_LOST', 'CANCELLED') then 'lost'
+    when date_diff(current_date("Australia/Melbourne"), date(l.created_at, "Australia/Melbourne"), day) > 7 then 'lost'
     else 'new_inquiry'
   end as lifecycle_status
 from leads_with_client l

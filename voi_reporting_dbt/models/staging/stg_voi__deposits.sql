@@ -14,7 +14,9 @@ select
   cast(REFUNDS as numeric) as refunds,
   cast(CLOSING_BALANCE as numeric) as closing_balance,
   CURRENCY_CODE as currency_code,
-  cast(COLLECTION_DATE as timestamp) as collection_ts_utc,
-  date(COLLECTION_DATE, "Australia/Melbourne") as collection_day_melbourne,
-  date_trunc(date(COLLECTION_DATE, "Australia/Melbourne"), week(saturday)) as pay_week_start
+  cast(COLLECTION_DATE as timestamp) as collection_ts_raw_utc,
+  cast(COLLECTION_DATE as datetime) as collection_datetime_local,
+  timestamp(cast(COLLECTION_DATE as datetime), "Australia/Melbourne") as collection_ts_utc,
+  date(cast(COLLECTION_DATE as datetime)) as collection_day_melbourne,
+  date_trunc(date(cast(COLLECTION_DATE as datetime)), week(saturday)) as pay_week_start
 from {{ source('voi_warehouse', 'deposits') }}
