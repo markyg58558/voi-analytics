@@ -9,6 +9,13 @@ select
   cast(SIGNUP_DATE as date) as signup_date,
   cast(FIRST_APPOINTMENT_DATE as date) as first_appointment_date,
   cast(LAST_APPOINTMENT_DATE as date) as last_appointment_date,
+  REFERRAL_SOURCE as referral_source,
+  cast(SMS_NOTIFICATIONS_ENABLED as bool) as sms_notifications_enabled,
+  cast(WHATSAPP_NOTIFICATIONS_ENABLED as bool) as whatsapp_notifications_enabled,
+  cast(EMAIL_NOTIFICATIONS_ENABLED as bool) as email_notifications_enabled,
+  cast(ACCEPTS_SMS_MARKETING_NOTIFICATIONS as bool) as accepts_sms_marketing_notifications,
+  cast(ACCEPTS_WHATSAPP_MARKETING_NOTIFICATIONS as bool) as accepts_whatsapp_marketing_notifications,
+  cast(ACCEPTS_EMAIL_MARKETING_NOTIFICATIONS as bool) as accepts_email_marketing_notifications,
   cast(TOTAL_APPOINTMENTS as int64) as total_appointments,
   cast(TOTAL_APPOINTMENT_VALUE as numeric) as total_appointment_value,
   cast(_loaded_at as timestamp) as loaded_at
