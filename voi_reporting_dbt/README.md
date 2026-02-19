@@ -46,24 +46,25 @@ How to set secret:
 
 How to run:
 1. GitHub repo -> Actions -> `VOI Reporting dbt Build` -> Run workflow.
-2. It also runs daily on schedule.
+2. It also runs every 2 hours on schedule.
 
 ## Current models
 
+- `stg_ops__leads`
+- `stg_voi__bookings`
+- `stg_voi__clients`
 - `stg_voi__deposits`
 - `stg_voi__sale_items`
 - `stg_voi__sales`
 - `stg_voi__team_members`
 - `dim_artists`
 - `dim_artist_payout_rules`
-- `fct_artist_payout_line_items`
-- `mart_payroll_weekly_artist`
-- `mart_payroll_artist_daily`
-- `mart_payroll_weekly_artist_snapshot`
-- `qa_payroll_snapshot_current_week`
+- `mart_lead_lifecycle`
+- `mart_client_lifecycle`
+- `mart_google_ads_conversions`
 
 ## Notes
 
-- Business week is Melbourne time with Saturday week start.
+- Timezone handling is standardized to Melbourne local time for lead/book/sale lifecycle matching.
 - Artist payout logic is owned by seed tables (`artist_master_seed`, `artist_payout_rules_seed`).
-- Fresha data is used for sales activity and `team_member_id` matching only.
+- Google Ads export model is `mart_google_ads_conversions`.

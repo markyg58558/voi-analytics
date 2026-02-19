@@ -28,3 +28,12 @@ models:
         tests: [not_null, unique]
       - name: lifecycle_segment
         tests: [not_null]
+
+  - name: mart_google_ads_conversions
+    columns:
+      - name: conversion_event_time
+        tests: [not_null]
+      - name: gclid
+        tests: [not_null]
+      - name: order_id
+        tests: [not_null]
