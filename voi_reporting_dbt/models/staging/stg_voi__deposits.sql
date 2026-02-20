@@ -15,8 +15,8 @@ select
   cast(CLOSING_BALANCE as numeric) as closing_balance,
   CURRENCY_CODE as currency_code,
   cast(COLLECTION_DATE as timestamp) as collection_ts_raw_utc,
-  cast(COLLECTION_DATE as datetime) as collection_datetime_local,
-  timestamp(cast(COLLECTION_DATE as datetime), "Australia/Melbourne") as collection_ts_utc,
-  date(cast(COLLECTION_DATE as datetime)) as collection_day_melbourne,
-  date_trunc(date(cast(COLLECTION_DATE as datetime)), week(saturday)) as pay_week_start
+  datetime(cast(COLLECTION_DATE as timestamp), {{ voi_tz() | tojson }}) as collection_datetime_local,
+  cast(COLLECTION_DATE as timestamp) as collection_ts_utc,
+  date(cast(COLLECTION_DATE as timestamp), {{ voi_tz() | tojson }}) as collection_day_melbourne,
+  date_trunc(date(cast(COLLECTION_DATE as timestamp), {{ voi_tz() | tojson }}), week(saturday)) as pay_week_start
 from {{ source('voi_warehouse', 'deposits') }}

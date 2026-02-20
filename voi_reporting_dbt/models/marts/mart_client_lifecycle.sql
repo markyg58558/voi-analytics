@@ -127,16 +127,16 @@ select
   ifnull(s.sales_count, 0) as sales_count,
   ifnull(b.bookings_count, 0) as bookings_count,
   s.first_sale_at_utc,
-  datetime(s.first_sale_at_utc, "Australia/Melbourne") as first_sale_at_melbourne,
+  {{ voi_local_datetime('s.first_sale_at_utc') }} as first_sale_at_melbourne,
   s.last_sale_at_utc,
-  datetime(s.last_sale_at_utc, "Australia/Melbourne") as last_sale_at_melbourne,
+  {{ voi_local_datetime('s.last_sale_at_utc') }} as last_sale_at_melbourne,
   s.first_sale_day_melbourne,
   s.last_sale_day_melbourne,
   ifnull(s.lifetime_sales_amount, 0) as lifetime_sales_amount,
   ifnull(s.lifetime_payments_amount, 0) as lifetime_payments_amount,
   case
     when s.last_sale_day_melbourne is null then null
-    else date_diff(current_date("Australia/Melbourne"), s.last_sale_day_melbourne, day)
+    else date_diff({{ voi_local_current_date() }}, s.last_sale_day_melbourne, day)
   end as days_since_last_sale,
   c.email_notifications_enabled,
   c.sms_notifications_enabled,
@@ -147,7 +147,7 @@ select
   case when ft.client_id is not null then true else false end as has_lead,
   ft.first_touch_lead_id,
   ft.first_touch_at_utc,
-  datetime(ft.first_touch_at_utc, "Australia/Melbourne") as first_touch_at_melbourne,
+  {{ voi_local_datetime('ft.first_touch_at_utc') }} as first_touch_at_melbourne,
   ft.first_touch_source,
   ft.first_touch_utm_source,
   ft.first_touch_utm_medium,
@@ -155,7 +155,7 @@ select
   ft.first_touch_gclid,
   lt.last_touch_lead_id,
   lt.last_touch_at_utc,
-  datetime(lt.last_touch_at_utc, "Australia/Melbourne") as last_touch_at_melbourne,
+  {{ voi_local_datetime('lt.last_touch_at_utc') }} as last_touch_at_melbourne,
   lt.last_touch_source,
   lt.last_touch_utm_source,
   lt.last_touch_utm_medium,
@@ -169,8 +169,8 @@ select
   end as acquisition_type,
   case
     when s.last_sale_day_melbourne is null then 'prospect'
-    when date_diff(current_date("Australia/Melbourne"), s.last_sale_day_melbourne, day) <= 90 then 'active'
-    when date_diff(current_date("Australia/Melbourne"), s.last_sale_day_melbourne, day) <= 180 then 'at_risk'
+    when date_diff({{ voi_local_current_date() }}, s.last_sale_day_melbourne, day) <= 90 then 'active'
+    when date_diff({{ voi_local_current_date() }}, s.last_sale_day_melbourne, day) <= 180 then 'at_risk'
     else 'lapsed'
   end as lifecycle_segment
 from clients c

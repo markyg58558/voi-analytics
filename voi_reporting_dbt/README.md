@@ -68,3 +68,6 @@ How to run:
 - Timezone handling is standardized to Melbourne local time for lead/book/sale lifecycle matching.
 - Artist payout logic is owned by seed tables (`artist_master_seed`, `artist_payout_rules_seed`).
 - Google Ads export model is `mart_google_ads_conversions`.
+- Time controls are centralized in `dbt_project.yml` vars:
+  - `voi_timezone` (default `Australia/Melbourne`)
+  - `lead_lost_days` (default `7`)

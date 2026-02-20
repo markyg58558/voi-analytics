@@ -83,8 +83,8 @@ booking_candidates as (
     b.booking_status,
     timestamp_diff(b.scheduled_ts_utc, l.created_at, hour) as hours_to_book,
     date_diff(
-      date(b.scheduled_ts_utc, "Australia/Melbourne"),
-      date(l.created_at, "Australia/Melbourne"),
+      {{ voi_local_date('b.scheduled_ts_utc') }},
+      {{ voi_local_date('l.created_at') }},
       day
     ) as days_to_book,
     row_number() over (
@@ -124,7 +124,7 @@ sale_artists_by_sale as (
     and upper(ifnull(si.sale_type, '')) not like '%DEPOSIT%'
   group by 1
 ),
-sale_candidates as (
+sale_candidates_from_booking as (
   select
     l.lead_id,
     s.sale_id,
@@ -146,15 +146,44 @@ sale_candidates as (
     s.total_payments,
     s.currency_code,
     timestamp_diff(s.sale_ts_utc, l.created_at, hour) as hours_to_complete,
-    date_diff(s.sale_day_melbourne, date(l.created_at, "Australia/Melbourne"), day) as days_to_complete,
-    row_number() over (
-      partition by l.lead_id
-      order by timestamp_diff(s.sale_ts_utc, l.created_at, hour) asc, s.sale_ts_utc asc, s.sale_id asc
-    ) as lead_rank,
-    row_number() over (
-      partition by s.sale_id
-      order by timestamp_diff(s.sale_ts_utc, l.created_at, hour) asc, l.created_at desc, l.lead_id asc
-    ) as sale_rank
+    date_diff(s.sale_day_melbourne, {{ voi_local_date('l.created_at') }}, day) as days_to_complete,
+    1 as match_priority
+  from leads_with_client l
+  join chosen_booking b
+    on l.lead_id = b.lead_id
+  join {{ ref('stg_voi__sales') }} s
+    on s.appointment_id = b.appointment_id
+   and s.sale_ts_utc >= l.created_at
+   and s.sale_ts_utc < timestamp_add(l.created_at, interval 180 day)
+   and upper(ifnull(s.transaction_type, '')) = 'SALE'
+   and upper(ifnull(s.sale_status, '')) in ('COMPLETED', 'PART PAID')
+  left join sale_artists_by_sale sa
+    on s.sale_id = sa.sale_id
+),
+sale_candidates_from_client as (
+  select
+    l.lead_id,
+    s.sale_id,
+    s.sale_number,
+    s.sale_ts_utc,
+    s.sale_day_melbourne,
+    case
+      when sa.artist_count > 1 then null
+      else sa.completed_artist_team_member_id
+    end as team_member_id,
+    case
+      when sa.artist_count > 1 then 'Multiple Artists'
+      when sa.artist_count = 1 then sa.completed_artist_name
+      else s.team_member
+    end as completed_artist,
+    s.sale_status,
+    s.payment_status,
+    s.total_sales,
+    s.total_payments,
+    s.currency_code,
+    timestamp_diff(s.sale_ts_utc, l.created_at, hour) as hours_to_complete,
+    date_diff(s.sale_day_melbourne, {{ voi_local_date('l.created_at') }}, day) as days_to_complete,
+    2 as match_priority
   from leads_with_client l
   join {{ ref('stg_voi__sales') }} s
     on l.matched_client_id = s.client_id
@@ -165,18 +194,36 @@ sale_candidates as (
   left join sale_artists_by_sale sa
     on s.sale_id = sa.sale_id
 ),
+sale_candidates as (
+  select * from sale_candidates_from_booking
+  union all
+  select * from sale_candidates_from_client
+),
+sale_ranked as (
+  select
+    *,
+    row_number() over (
+      partition by lead_id
+      order by match_priority asc, hours_to_complete asc, sale_ts_utc asc, sale_id asc
+    ) as lead_rank,
+    row_number() over (
+      partition by sale_id
+      order by match_priority asc, hours_to_complete asc, lead_id asc
+    ) as sale_rank
+  from sale_candidates
+),
 chosen_sale as (
   select *
-  from sale_candidates
+  from sale_ranked
   where lead_rank = 1
     and sale_rank = 1
 )
 select
   l.lead_id,
   l.created_at as lead_created_at,
-  datetime(l.created_at, "Australia/Melbourne") as lead_created_at_melbourne,
+  {{ voi_local_datetime('l.created_at') }} as lead_created_at_melbourne,
   l.updated_at as lead_updated_at,
-  datetime(l.updated_at, "Australia/Melbourne") as lead_updated_at_melbourne,
+  {{ voi_local_datetime('l.updated_at') }} as lead_updated_at_melbourne,
   l.lead_status as lead_status_raw,
   l.first_name,
   l.last_name,
@@ -206,7 +253,7 @@ select
   b.booking_id as matched_booking_id,
   b.appointment_id as matched_appointment_id,
   b.scheduled_ts_utc as booked_at,
-  datetime(b.scheduled_ts_utc, "Australia/Melbourne") as booked_at_melbourne,
+  {{ voi_local_datetime('b.scheduled_ts_utc') }} as booked_at_melbourne,
   b.service as booked_service,
   b.booked_artist,
   b.booking_status,
@@ -215,7 +262,7 @@ select
   s.sale_id as matched_sale_id,
   s.sale_number,
   s.sale_ts_utc as completed_at,
-  datetime(s.sale_ts_utc, "Australia/Melbourne") as completed_at_melbourne,
+  {{ voi_local_datetime('s.sale_ts_utc') }} as completed_at_melbourne,
   s.completed_artist,
   s.team_member_id as matched_sale_team_member_id,
   s.sale_status as matched_sale_status,
@@ -236,7 +283,7 @@ select
   case
     when s.sale_id is not null then 'completed'
     when b.booking_id is not null then 'booked'
-    when date_diff(current_date("Australia/Melbourne"), date(l.created_at, "Australia/Melbourne"), day) > 7 then 'lost'
+    when date_diff({{ voi_local_current_date() }}, {{ voi_local_date('l.created_at') }}, day) > {{ voi_lead_lost_days() }} then 'lost'
     else 'new_inquiry'
   end as lifecycle_status
 from leads_with_client l

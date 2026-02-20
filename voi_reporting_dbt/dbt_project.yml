@@ -29,3 +29,7 @@ models:
 seeds:
   voi_reporting_platform:
     +schema: voi_reporting
+
+vars:
+  voi_timezone: "Australia/Melbourne"
+  lead_lost_days: 7

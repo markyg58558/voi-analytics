@@ -26,7 +26,7 @@ normalized as (
   from completed_leads
 )
 select
-  format_timestamp('%Y-%m-%d %H:%M:%S%Ez', completed_at, 'Australia/Melbourne') as conversion_event_time,
+  format_timestamp('%Y-%m-%d %H:%M:%S%Ez', completed_at, '{{ voi_tz() }}') as conversion_event_time,
   gclid,
   case
     when email_norm is null or email_norm = '' then null

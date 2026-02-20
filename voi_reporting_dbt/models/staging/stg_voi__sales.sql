@@ -1,6 +1,7 @@
 select
   cast(SALE_ID as int64) as sale_id,
   SALE_NUMBER as sale_number,
+  cast(APPOINTMENT_ID as int64) as appointment_id,
   cast(TEAM_MEMBER_ID as int64) as team_member_id,
   TEAM_MEMBER as team_member,
   cast(CLIENT_ID as int64) as client_id,
@@ -17,9 +18,9 @@ select
   cast(TOTAL_PAYMENTS as numeric) as total_payments,
   CURRENCY_CODE as currency_code,
   cast(SALE_DATE as timestamp) as sale_ts_raw_utc,
-  cast(SALE_DATE as datetime) as sale_datetime_local,
-  -- Fresha SALE_DATE arrives as local wall-clock time; interpret it in Melbourne tz.
-  timestamp(cast(SALE_DATE as datetime), "Australia/Melbourne") as sale_ts_utc,
-  date(cast(SALE_DATE as datetime)) as sale_day_melbourne,
-  date_trunc(date(cast(SALE_DATE as datetime)), week(saturday)) as pay_week_start
+  datetime(cast(SALE_DATE as timestamp), {{ voi_tz() | tojson }}) as sale_datetime_local,
+  -- SALE_DATE is already stored as true UTC TIMESTAMP in warehouse.
+  cast(SALE_DATE as timestamp) as sale_ts_utc,
+  date(cast(SALE_DATE as timestamp), {{ voi_tz() | tojson }}) as sale_day_melbourne,
+  date_trunc(date(cast(SALE_DATE as timestamp), {{ voi_tz() | tojson }}), week(saturday)) as pay_week_start
 from {{ source('voi_warehouse', 'sales') }}
