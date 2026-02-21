@@ -54,6 +54,7 @@ How to run:
 - `stg_voi__bookings`
 - `stg_voi__clients`
 - `stg_voi__deposits`
+- `stg_voi__payments`
 - `stg_voi__sale_items`
 - `stg_voi__sales`
 - `stg_voi__team_members`
@@ -62,6 +63,7 @@ How to run:
 - `mart_lead_lifecycle`
 - `mart_client_lifecycle`
 - `mart_google_ads_conversions`
+- `mart_xero_receipts_nightly_payload`
 
 ## Notes
 

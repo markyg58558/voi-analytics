@@ -29,6 +29,15 @@ models:
       - name: pay_week_start
         tests: [not_null]
 
+  - name: stg_voi__payments
+    columns:
+      - name: payment_no
+        tests: [not_null]
+      - name: sale_id
+        tests: [not_null]
+      - name: pay_week_start
+        tests: [not_null]
+
   - name: stg_voi__clients
     columns:
       - name: client_id
