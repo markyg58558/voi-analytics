@@ -1,3 +1,37 @@
+with leads_ranked as (
+  select
+    lead_id,
+    first_name,
+    last_name,
+    email,
+    mobile_number,
+    lead_source,
+    how_heard,
+    preferred_artist,
+    image_url,
+    inquiry_message,
+    gclid,
+    fbclid,
+    msclkid,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_term,
+    utm_content,
+    landing_page_url,
+    referrer_url,
+    form_name,
+    cast(consent_marketing as bool) as consent_marketing,
+    status as lead_status,
+    cast(created_at as timestamp) as created_at,
+    cast(updated_at as timestamp) as updated_at,
+    cast(_ingested_at as timestamp) as ingested_at,
+    row_number() over (
+      partition by lead_id
+      order by cast(updated_at as timestamp) desc, cast(_ingested_at as timestamp) desc
+    ) as rn
+  from {{ source('voi_ops', 'leads_inbox_raw') }}
+)
 select
   lead_id,
   first_name,
@@ -24,9 +58,10 @@ select
   landing_page_url,
   referrer_url,
   form_name,
-  cast(consent_marketing as bool) as consent_marketing,
-  status as lead_status,
-  cast(created_at as timestamp) as created_at,
-  cast(updated_at as timestamp) as updated_at,
-  cast(_ingested_at as timestamp) as ingested_at
-from {{ source('voi_ops', 'leads_inbox_raw') }}
+  consent_marketing,
+  lead_status,
+  created_at,
+  updated_at,
+  ingested_at
+from leads_ranked
+where rn = 1
