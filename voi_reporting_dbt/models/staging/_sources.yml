@@ -8,6 +8,7 @@ sources:
       - name: bookings
       - name: clients
       - name: deposits
+      - name: payments
       - name: sale_items
       - name: sales
       - name: team_members

@@ -37,3 +37,12 @@ models:
         tests: [not_null]
       - name: order_id
         tests: [not_null]
+
+  - name: mart_xero_receipts_nightly_payload
+    columns:
+      - name: record_type
+        tests: [not_null]
+      - name: sale_id
+        tests: [not_null]
+      - name: source_row_id
+        tests: [not_null]
