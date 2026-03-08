@@ -1,0 +1,385 @@
+{
+  "name": "Xero Receipts Nightly (Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7a17baf4-82f8-4c45-a296-b6f82d573f53",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "DECLARE p_tz STRING DEFAULT 'Australia/Melbourne';\nDECLARE p_run_day DATE DEFAULT DATE_SUB(CURRENT_DATE(p_tz), INTERVAL 1 DAY);\n\nWITH sales_base AS (\n  SELECT\n    s.SALE_ID AS sale_id,\n    s.SALE_NUMBER AS sale_number,\n    DATE(s.SALE_DATE, p_tz) AS sale_day_local,\n    s.CLIENT AS contact_name,\n    s.CURRENCY_CODE AS currency_code,\n    ROUND(CAST(IFNULL(s.TOTAL_SALES, 0) AS NUMERIC), 2) AS sale_total\n  FROM `victims-of-ink-data-platform.voi_warehouse.sales` s\n  WHERE DATE(s.SALE_DATE, p_tz) = p_run_day\n    AND LOWER(IFNULL(s.STATUS, '')) NOT IN ('cancelled', 'void')\n    AND CAST(IFNULL(s.TOTAL_SALES, 0) AS NUMERIC) > 0\n),\npaid_totals AS (\n  SELECT\n    p.SALE_ID AS sale_id,\n    ROUND(SUM(CAST(IFNULL(p.PAYMENT_AMOUNT, 0) AS NUMERIC)), 2) AS paid_total\n  FROM `victims-of-ink-data-platform.voi_warehouse.payments` p\n  WHERE DATE(p.PAYMENT_DATE, p_tz) = p_run_day\n  GROUP BY 1\n)\nSELECT\n  sb.sale_id,\n  sb.sale_number,\n  sb.sale_day_local AS invoice_date_local,\n  sb.contact_name,\n  sb.currency_code,\n  sb.sale_total,\n  ROUND(IFNULL(pt.paid_total, 0), 2) AS paid_total,\n  ROUND(IFNULL(pt.paid_total, 0), 2) >= sb.sale_total AS ready_to_mark_paid,\n  CONCAT('Fresha receipt ', sb.sale_number) AS reference\nFROM sales_base sb\nLEFT JOIN paid_totals pt ON pt.sale_id = sb.sale_id\nORDER BY sb.sale_id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "780d3c76-e612-467a-a083-14067e5f8d90",
+      "name": "Q1A Headers",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items\n  .filter(i => String(i.json.ready_to_mark_paid).toLowerCase() === 'true')\n  .map(i => ({ json: { ...i.json, sale_id: String(i.json.sale_id) } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "9fb4b1c6-b7cc-4f90-a87c-6dbf957e9f2d",
+      "name": "Filter Ready Sales"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = items.map(i => `'${String(i.json.sale_id).replace(/'/g, \"\\\\'\")}'`);\nif (!ids.length) {\n  return [{ json: { sale_ids_csv: \"'__none__'\" } }];\n}\nreturn [{ json: { sale_ids_csv: ids.join(',') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "d97b2731-1c84-45fe-b37c-c4931e08eba7",
+      "name": "Build Sale ID List"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "DECLARE p_tz STRING DEFAULT 'Australia/Melbourne';\nDECLARE p_run_day DATE DEFAULT DATE_SUB(CURRENT_DATE(p_tz), INTERVAL 1 DAY);\n\nSELECT\n  si.SALE_ID AS sale_id,\n  si.SALE_ITEM_ID AS sale_item_id,\n  IFNULL(si.ITEM, 'Sale Item') AS line_description,\n  CAST(IFNULL(si.QUANTITY, 1) AS INT64) AS quantity,\n  ROUND(CAST(IFNULL(si.NET_SALES, 0) AS NUMERIC), 2) AS net_amount,\n  ROUND(CAST(IFNULL(si.TAXES_ON_NET_SALES, 0) AS NUMERIC), 2) AS tax_amount,\n  ROUND(CAST(IFNULL(si.TOTAL_SALES, 0) AS NUMERIC), 2) AS line_total,\n  IFNULL(si.CATEGORY, 'Uncategorised') AS category,\n  IFNULL(si.SALE_TYPE, 'General') AS sale_type\nFROM `victims-of-ink-data-platform.voi_warehouse.sale_items` si\nWHERE DATE(si.SALE_DATE, p_tz) = p_run_day\n  AND CAST(si.SALE_ID AS STRING) IN ({{ $json.sale_ids_csv }})\n  AND ROUND(CAST(IFNULL(si.TOTAL_SALES, 0) AS NUMERIC), 2) <> 0\nORDER BY sale_id, sale_item_id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        0
+      ],
+      "id": "c57a97af-c9ad-44d7-921b-65af92e67c17",
+      "name": "Q2 Lines",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const headers = $items('Filter Ready Sales').map(i => i.json);\nconst lines = items.map(i => i.json);\n\nconst bySale = new Map();\nfor (const h of headers) {\n  bySale.set(String(h.sale_id), {\n    sale_id: String(h.sale_id),\n    sale_number: String(h.sale_number),\n    invoice_payload: {\n      Type: 'ACCREC',\n      Date: h.invoice_date_local,\n      DueDate: h.invoice_date_local,\n      Reference: h.reference,\n      LineAmountTypes: 'Inclusive',\n      Status: 'AUTHORISED',\n      Contact: { Name: h.contact_name || 'Walk-in Receipts' },\n      LineItems: []\n    }\n  });\n}\n\nfor (const l of lines) {\n  const key = String(l.sale_id);\n  if (!bySale.has(key)) continue;\n  bySale.get(key).invoice_payload.LineItems.push({\n    Description: l.line_description,\n    Quantity: Number(l.quantity || 1),\n    UnitAmount: Number(l.line_total),\n    AccountCode: '200',\n    TaxType: 'OUTPUT'\n  });\n}\n\nreturn [...bySale.values()].map(v => ({ json: v }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        0
+      ],
+      "id": "a310f853-3d26-4e00-b7f7-d7935131699b",
+      "name": "Build Invoice Payloads"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.xero.com/api.xro/2.0/Invoices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "xero-tenant-id",
+              "value": "REPLACE_XERO_TENANT_ID"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { Invoices: [ $json.invoice_payload ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        0
+      ],
+      "id": "f2d937f6-aee7-4d7d-946f-f04a1f7ad5db",
+      "name": "Create Invoices (Xero)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $items('Build Invoice Payloads');\nreturn items.map((it, idx) => {\n  const s = src[idx]?.json || {};\n  const inv = it.json?.Invoices?.[0] || {};\n  return {\n    json: {\n      sale_id: String(s.sale_id || ''),\n      sale_number: String(s.sale_number || ''),\n      xero_invoice_id: inv.InvoiceID || null\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        0
+      ],
+      "id": "958c0900-1831-41ef-a539-955743f9f62a",
+      "name": "Normalize Invoice Response"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "victims-of-ink-data-platform",
+          "mode": "list",
+          "cachedResultName": "Victims of Ink Data Platform",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=victims-of-ink-data-platform"
+        },
+        "sqlQuery": "DECLARE p_tz STRING DEFAULT 'Australia/Melbourne';\nDECLARE p_run_day DATE DEFAULT DATE_SUB(CURRENT_DATE(p_tz), INTERVAL 1 DAY);\n\nSELECT\n  p.SALE_ID AS sale_id,\n  p.PAYMENT_NO AS payment_no,\n  DATE(p.PAYMENT_DATE, p_tz) AS payment_date_local,\n  p.PAYMENT_METHOD AS payment_method,\n  ROUND(CAST(IFNULL(p.PAYMENT_AMOUNT, 0) AS NUMERIC), 2) AS payment_amount,\n  CASE\n    WHEN IFNULL(p.IS_GIFT_CARD_REDEMPTION, FALSE) THEN 'gift_voucher_clearing'\n    WHEN IFNULL(p.IS_DEPOSIT_REDEMPTION, FALSE) THEN 'deposits_clearing'\n    WHEN LOWER(IFNULL(p.PAYMENT_METHOD, '')) LIKE '%cash%' THEN 'cash_clearing'\n    WHEN LOWER(IFNULL(p.PAYMENT_METHOD, '')) LIKE '%eftpos%' THEN 'fresha_eftpos_clearing'\n    WHEN LOWER(IFNULL(p.PAYMENT_METHOD, '')) LIKE '%card%' THEN 'fresha_eftpos_clearing'\n    ELSE 'fresha_eftpos_clearing'\n  END AS clearing_bucket\nFROM `victims-of-ink-data-platform.voi_warehouse.payments` p\nWHERE DATE(p.PAYMENT_DATE, p_tz) = p_run_day\n  AND ROUND(CAST(IFNULL(p.PAYMENT_AMOUNT, 0) AS NUMERIC), 2) > 0\nORDER BY sale_id, payment_no;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        1800,
+        0
+      ],
+      "id": "9664af8e-78cf-49f5-9119-b94446061e37",
+      "name": "Q1B Payments",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "nCtrpldVvQPOhOeu",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoices = $items('Normalize Invoice Response').map(i => i.json);\nconst invoiceBySale = new Map(invoices.map(i => [String(i.sale_id), i.xero_invoice_id]));\n\nconst accountMap = {\n  fresha_eftpos_clearing: 'REPLACE_XERO_ACCOUNT_ID_EFTPOS',\n  deposits_clearing: 'REPLACE_XERO_ACCOUNT_ID_DEPOSITS',\n  gift_voucher_clearing: 'REPLACE_XERO_ACCOUNT_ID_GIFTVOUCHER',\n  cash_clearing: 'REPLACE_XERO_ACCOUNT_ID_CASH'\n};\n\nconst out = [];\nfor (const row of items.map(i => i.json)) {\n  const saleId = String(row.sale_id);\n  const invoiceId = invoiceBySale.get(saleId);\n  if (!invoiceId) continue;\n\n  out.push({\n    json: {\n      sale_id: saleId,\n      payment_no: String(row.payment_no),\n      xero_invoice_id: invoiceId,\n      payment_payload: {\n        Invoice: { InvoiceID: invoiceId },\n        Account: { AccountID: accountMap[row.clearing_bucket] || accountMap.fresha_eftpos_clearing },\n        Date: row.payment_date_local,\n        Amount: Number(row.payment_amount),\n        Reference: `Fresha payment ${row.payment_no}`\n      }\n    }\n  });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        0
+      ],
+      "id": "61eb2ea5-4e0c-478f-b7e0-f2cb22c00945",
+      "name": "Build Payment Payloads"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.xero.com/api.xro/2.0/Payments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "xero-tenant-id",
+              "value": "REPLACE_XERO_TENANT_ID"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payment_payload }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        0
+      ],
+      "id": "202e9a8f-4209-47b6-bf28-50cfcc892e66",
+      "name": "Create Payments (Xero)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $items('Build Payment Payloads');\nreturn items.map((it, idx) => {\n  const s = src[idx]?.json || {};\n  const p = it.json?.Payments?.[0] || {};\n  return {\n    json: {\n      sale_id: s.sale_id,\n      payment_no: s.payment_no,\n      xero_invoice_id: s.xero_invoice_id,\n      xero_payment_id: p.PaymentID || null,\n      synced_at: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        0
+      ],
+      "id": "fcf3cb95-d5ac-4093-a98d-4a8f1776cb08",
+      "name": "Build Audit Rows"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Q1A Headers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q1A Headers": {
+      "main": [
+        [
+          {
+            "node": "Filter Ready Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Ready Sales": {
+      "main": [
+        [
+          {
+            "node": "Build Sale ID List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sale ID List": {
+      "main": [
+        [
+          {
+            "node": "Q2 Lines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q2 Lines": {
+      "main": [
+        [
+          {
+            "node": "Build Invoice Payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Invoice Payloads": {
+      "main": [
+        [
+          {
+            "node": "Create Invoices (Xero)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Invoices (Xero)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Invoice Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Invoice Response": {
+      "main": [
+        [
+          {
+            "node": "Q1B Payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q1B Payments": {
+      "main": [
+        [
+          {
+            "node": "Build Payment Payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payment Payloads": {
+      "main": [
+        [
+          {
+            "node": "Create Payments (Xero)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Payments (Xero)": {
+      "main": [
+        [
+          {
+            "node": "Build Audit Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c6c52d9f-f2b4-4a26-bcb2-aa83f4398934",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

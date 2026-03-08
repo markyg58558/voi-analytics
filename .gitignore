@@ -5,3 +5,6 @@ node_modules/
 **/target/
 **/dbt_packages/
 **/logs/
+
+# local secrets
+.env.local

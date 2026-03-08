@@ -56,3 +56,55 @@ On rerun, skip any row already present in the audit table.
 2. Confirm contact strategy in Xero (`Walk-in Receipts` contact vs client-level contacts).
 3. Decide handling for partial payments and overpayments.
 4. Add refund handling path (credit note vs negative payment).
+
+## Session Handover (2026-02-21)
+### Confirmed Working
+1. End-to-end invoice + payment flow works in n8n with batch splitting (`batchSize = 1`).
+2. Melbourne-local day filtering is required for all BigQuery date logic:
+   - `DATE(timestamp_col, 'Australia/Melbourne')`
+3. Xero invoice creation requires:
+   - `DueDate` present
+   - valid line `TaxType` (`OUTPUT` used successfully)
+4. Xero payment posting requires valid payment-capable account mapping per method/bucket.
+
+### Current Payment Mapping Decision
+1. `payment_method = Bank Transfer` -> account code `601`.
+2. Fresha terminal payments -> account code `140` (after enabling payments to this account in Xero).
+3. Cash -> account code `812`.
+4. Gift voucher redemption -> account code `813`.
+5. Deposit redemption -> account code `814`.
+
+### Next Build Items
+1. Product vs service revenue mapping:
+   - route product lines to product revenue accounts
+   - route service lines to service revenue accounts
+2. Merchant fee handling for Fresha terminal settlements:
+   - if invoice/receipt gross exceeds actual settlement deposit, post merchant fee difference to fee expense account
+   - reconcile `140` clearing against net settlement amount
+3. Keep idempotency strict:
+   - dedupe by `payment_no`
+   - skip already-synced audit keys
+
+## Session Handover (2026-02-22)
+### Production Workflow Status
+1. The nightly invoice + payment workflow in n8n is confirmed working and remains the active production path.
+2. Invoices are created from non-void, non-cancelled sales only, with Melbourne-local day filtering.
+3. Payments are created per payment row with account mapping by method/bucket:
+   - Cash -> `812`
+   - Bank Transfer -> `601`
+   - Fresha terminal/card/eftpos -> `140`
+   - Gift voucher redemption -> `813`
+   - Deposit redemption -> `814`
+4. Overpayment protection is enabled by capping applied payment amount to Xero invoice `AmountDue`.
+
+### Service Charge / Merchant Fee Decision
+1. Service charges are not included in invoice line creation for the active receipts workflow.
+2. Merchant fee auto-posting is not active in production.
+3. Fee journaling remains in a separate draft n8n workflow for future use only:
+   - `/Users/markgraham/Desktop/WF - Fresha Settlement Surcharges.json`
+4. Current operating policy: do not post surcharge/fee journals until settlement-source process is finalized and approved.
+
+### Data and Audit Notes
+1. `voi_warehouse.service_charges` is available and used for surcharge reporting/analysis.
+2. `voi_ops.surcharge_daily_audit` exists and can be retained as reporting support; it is not currently required for production fee posting.
+3. If fee posting is re-enabled later, enforce idempotency with a dedicated posting audit table before activating schedule.
